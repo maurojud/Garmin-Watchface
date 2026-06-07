@@ -1,0 +1,1183 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Garmin Watch Face Designer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0a0a0a;--panel:#111;--border:#1e1e1e;--border2:#2a2a2a;--text:#ccc;--muted:#555;--dim:#333;--acc:#888}
+body{font-family:'Courier New',monospace;background:var(--bg);color:var(--text);min-height:100vh}
+
+/* AUTH OVERLAY */
+#authOverlay{position:fixed;inset:0;background:#080808;display:flex;align-items:center;justify-content:center;z-index:1000}
+.auth-box{background:#111;border:1px solid #222;border-radius:10px;padding:32px;width:340px;display:flex;flex-direction:column;gap:14px}
+.auth-box h2{font-size:13px;letter-spacing:.2em;text-transform:uppercase;color:#666;text-align:center}
+.auth-tabs{display:flex;border-bottom:1px solid #1e1e1e;margin-bottom:4px}
+.auth-tab{flex:1;padding:7px;font-size:10px;letter-spacing:.08em;text-transform:uppercase;text-align:center;cursor:pointer;color:#3a3a3a;background:none;border:none;border-bottom:2px solid transparent;transition:all .1s;font-family:'Courier New',monospace}
+.auth-tab.on{color:#aaa;border-bottom-color:#666}
+.auth-input{background:#0a0a0a;border:1px solid #222;border-radius:5px;padding:8px 10px;color:#ccc;font-size:12px;outline:none;width:100%;transition:border-color .1s;font-family:'Courier New',monospace}
+.auth-input:focus{border-color:#444}
+.auth-btn{padding:9px;border-radius:5px;border:1px solid #444;background:#1a1a1a;color:#ddd;font-size:12px;cursor:pointer;width:100%;font-family:'Courier New',monospace;letter-spacing:.05em;transition:all .1s}
+.auth-btn:hover{background:#222}
+.auth-err{font-size:10px;color:#a55;text-align:center;min-height:16px}
+.auth-note{font-size:9px;color:#2e2e2e;text-align:center;line-height:1.5}
+
+/* TOP BAR */
+#topBar{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--border);background:var(--panel)}
+#topBar h1{font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:#555;flex:1}
+.top-btn{padding:4px 10px;border-radius:4px;border:1px solid var(--border2);background:var(--bg);color:var(--muted);font-size:10px;cursor:pointer;font-family:'Courier New',monospace;transition:all .1s;white-space:nowrap}
+.top-btn:hover{border-color:#444;color:#bbb}
+.top-btn.acc{border-color:#555;color:#ddd}
+.top-btn.grn{border-color:#2a4a2a;color:#5a9a5a}
+.top-btn.grn:hover{background:#0e1e0e}
+#userEmail{font-size:10px;color:#333}
+
+/* DESIGN LIST SIDEBAR */
+#designSidebar{position:fixed;left:0;top:45px;bottom:0;width:220px;background:#0d0d0d;border-right:1px solid var(--border);display:none;flex-direction:column;z-index:100;overflow:hidden}
+#designSidebar.open{display:flex}
+.dsb-head{padding:10px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;font-size:10px;color:var(--muted)}
+.dsb-head span{flex:1}
+.dsb-list{flex:1;overflow-y:auto;padding:6px}
+.dsb-item{padding:7px 9px;border-radius:4px;border:1px solid var(--border);background:var(--bg);margin-bottom:4px;cursor:pointer;font-size:10px;transition:all .1s}
+.dsb-item:hover{border-color:#333;background:#111}
+.dsb-item .di-name{color:#aaa;margin-bottom:2px}
+.dsb-item .di-meta{color:#333;font-size:9px}
+.dsb-item .di-del{float:right;color:#633;font-size:9px;cursor:pointer;padding:1px 4px;border:1px solid #2a1a1a;border-radius:2px}
+.dsb-item .di-del:hover{color:#a55;background:#180a0a}
+
+/* MAIN LAYOUT */
+#appWrap{padding:14px;display:grid;grid-template-columns:240px 1fr 295px;gap:14px;min-height:calc(100vh - 45px)}
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:7px;padding:11px;display:flex;flex-direction:column;gap:7px;overflow-y:auto;max-height:calc(100vh - 73px)}
+.sec{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:#3a3a3a;padding-bottom:4px;border-bottom:1px solid #1a1a1a;margin:4px 0 2px}
+.fi{display:flex;align-items:center;gap:6px;padding:5px 7px;border-radius:4px;border:1px solid #1a1a1a;cursor:pointer;background:#0d0d0d;font-size:11px;transition:all .1s}
+.fi:hover,.fi.sel{background:#181818;border-color:#2e2e2e}
+.fi .dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.fi .fn{flex:1;color:#aaa;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fi .fi2{font-size:9px;color:#3a3a3a;flex-shrink:0}
+.lbl{font-size:10px;color:#4a4a4a;margin-bottom:2px}
+.row{display:flex;gap:5px;align-items:center;margin-bottom:5px}
+input[type=text],input[type=number],select,textarea{background:#0a0a0a;border:1px solid #1e1e1e;border-radius:4px;padding:4px 7px;color:#ccc;font-family:'Courier New',monospace;font-size:11px;outline:none;transition:border-color .1s;width:100%}
+input[type=text]:focus,input[type=number]:focus,select:focus,textarea:focus{border-color:#3a3a3a}
+textarea{resize:vertical;min-height:48px;line-height:1.5}
+input[type=range]{flex:1;accent-color:#555;height:3px}
+.sw{width:24px;height:24px;border-radius:4px;border:1px solid #222;cursor:pointer;flex-shrink:0;min-width:24px}
+.btn{padding:5px 11px;border-radius:4px;border:1px solid #222;background:#141414;color:#aaa;font-size:11px;cursor:pointer;font-family:'Courier New',monospace;transition:all .1s;white-space:nowrap}
+.btn:hover{background:#1c1c1c;border-color:#3a3a3a}
+.btn.acc{border-color:#444;color:#ddd}
+.btn.acc:hover{background:#222}
+.btn.sm{padding:3px 7px;font-size:10px}
+.btn.del{border-color:#2e1212;color:#844}
+.btn.del:hover{background:#180a0a}
+.upl{border:1px dashed #1e1e1e;border-radius:5px;padding:9px;text-align:center;cursor:pointer;font-size:10px;color:#3a3a3a;transition:all .1s}
+.upl:hover{border-color:#444;color:#888}
+.prev-col{display:flex;flex-direction:column;align-items:center;gap:10px}
+.watch-wrap{position:relative;width:260px;height:260px}
+.wbezel{position:absolute;inset:0;border-radius:50%;background:conic-gradient(#282828,#3e3e3e,#282828,#181818,#282828);box-shadow:0 0 0 3px #080808,0 8px 28px rgba(0,0,0,.95)}
+.wscreen{position:absolute;inset:10px;border-radius:50%;overflow:hidden;background:#000;cursor:crosshair}
+.wbg{position:absolute;inset:0;background-size:cover;background-position:center}
+.wdim{position:absolute;inset:0;pointer-events:none}
+.wfl{position:absolute;inset:0;overflow:hidden}
+.wf{position:absolute;cursor:move;user-select:none;display:flex;align-items:center;gap:3px;transform:translate(-50%,-50%);padding:2px 4px;border:1px dashed transparent;border-radius:3px}
+.wf:hover{border-color:rgba(255,255,255,.18)}
+.wf.sel{border-color:rgba(255,200,0,.75);background:rgba(255,200,0,.04)}
+.wf .wft{white-space:pre}
+.rh{position:absolute;bottom:-5px;right:-5px;width:9px;height:9px;border-radius:2px;background:rgba(255,200,0,.9);cursor:se-resize;display:none}
+.wf.sel .rh{display:block}
+/* shape fields */
+.wshape{position:absolute;cursor:move;border:1px dashed transparent;transform:translate(-50%,-50%)}
+.wshape:hover{border-color:rgba(255,255,255,.18)!important}
+.wshape.sel{border-color:rgba(255,200,0,.75)!important}
+.srh{position:absolute;bottom:-5px;right:-5px;width:9px;height:9px;border-radius:2px;background:rgba(255,200,0,.9);cursor:se-resize;display:none}
+.wshape.sel .srh{display:block}
+.edit-col{display:flex;flex-direction:column;gap:7px}
+.tabs{display:flex;border-bottom:1px solid #1a1a1a;margin-bottom:3px}
+.tab{flex:1;padding:6px 2px;font-size:9px;letter-spacing:.07em;text-transform:uppercase;text-align:center;cursor:pointer;color:#3a3a3a;background:none;border:none;border-bottom:2px solid transparent;transition:all .1s;font-family:'Courier New',monospace}
+.tab.on{color:#aaa;border-bottom-color:#666}
+.tp{display:none;flex-direction:column;gap:6px}
+.tp.on{display:flex}
+.code-out{font-size:9.5px;font-family:'Courier New',monospace;background:#070707;border:1px solid #1a1a1a;border-radius:4px;padding:10px;white-space:pre;overflow:auto;max-height:400px;line-height:1.55;color:#666}
+.ig{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.ib{padding:3px;border-radius:3px;border:1px solid #1a1a1a;background:#0a0a0a;cursor:pointer;font-size:13px;text-align:center;transition:all .1s;line-height:1.3}
+.ib:hover,.ib.on{background:#1e1e1e;border-color:#333}
+.seg{display:flex;border:1px solid #1e1e1e;border-radius:4px;overflow:hidden}
+.seg button{flex:1;padding:4px;font-size:10px;background:#0a0a0a;border:none;color:#444;cursor:pointer;font-family:'Courier New',monospace;transition:all .1s}
+.seg button.on{background:#1e1e1e;color:#bbb}
+.seg button:hover{background:#141414}
+.font-item{display:flex;align-items:center;gap:6px;padding:4px 7px;border-radius:4px;border:1px solid #1a1a1a;background:#0a0a0a;font-size:10px}
+.font-item .fn-name{flex:1;color:#888;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fn-del{font-size:9px;color:#633;cursor:pointer;padding:1px 5px;border-radius:2px;border:1px solid #2a1a1a;flex-shrink:0}
+.fn-del:hover{background:#1a0a0a;color:#a55}
+.tpl-vars{display:flex;flex-wrap:wrap;gap:3px;margin-bottom:4px}
+.tv{font-size:9px;font-family:'Courier New',monospace;padding:2px 5px;border-radius:3px;border:1px solid #222;background:#0d0d0d;color:#666;cursor:pointer;transition:all .1s}
+.tv:hover{border-color:#444;color:#aaa;background:#161616}
+.tpl-preview{font-size:10px;color:#555;padding:4px 6px;background:#080808;border-radius:3px;border:1px solid #1a1a1a;min-height:20px}
+.ref-table{font-size:10px;border-collapse:collapse;width:100%}
+.ref-table td{padding:3px 5px;border-bottom:1px solid #1a1a1a;vertical-align:top}
+.ref-table td:first-child{color:#666;font-family:'Courier New',monospace;white-space:nowrap}
+.ref-table td:last-child{color:#3a3a3a}
+.toast{position:fixed;bottom:20px;right:20px;background:#1a2a1a;border:1px solid #2a4a2a;color:#5a9a5a;font-size:11px;padding:8px 14px;border-radius:5px;font-family:'Courier New',monospace;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none}
+.toast.err{background:#2a1a1a;border-color:#4a2a2a;color:#a55}
+.toast.show{opacity:1}
+.spinner{display:inline-block;width:10px;height:10px;border:1.5px solid #444;border-top-color:#888;border-radius:50%;animation:spin .6s linear infinite;margin-right:5px;vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<!-- AUTH OVERLAY -->
+<div id="authOverlay">
+  <div class="auth-box">
+    <h2>◈ Watch Face Designer</h2>
+    <div class="auth-tabs">
+      <button class="auth-tab on" onclick="authTab('login',this)">Login</button>
+      <button class="auth-tab" onclick="authTab('signup',this)">Registrieren</button>
+    </div>
+    <input class="auth-input" id="authEmail" type="email" placeholder="E-Mail">
+    <input class="auth-input" id="authPw" type="password" placeholder="Passwort" onkeydown="if(event.key==='Enter')doAuth()">
+    <div id="authConfirmRow" style="display:none">
+      <input class="auth-input" id="authPw2" type="password" placeholder="Passwort bestätigen">
+    </div>
+    <div class="auth-err" id="authErr"></div>
+    <button class="auth-btn" onclick="doAuth()" id="authBtn">Login</button>
+    <div class="auth-note">Deine Designs, Schriften und Bilder werden<br>sicher in der Cloud gespeichert.</div>
+  </div>
+</div>
+
+<!-- TOP BAR -->
+<div id="topBar">
+  <h1>◈ Garmin Watch Face Designer</h1>
+  <button class="top-btn" onclick="toggleDesignSidebar()">☰ Designs</button>
+  <button class="top-btn grn" onclick="saveDesign()" id="saveBtn">↑ Speichern</button>
+  <button class="top-btn acc" onclick="switchTab('code',3)">↓ Code</button>
+  <span id="userEmail"></span>
+  <button class="top-btn" onclick="doLogout()">Logout</button>
+</div>
+
+<!-- DESIGN SIDEBAR -->
+<div id="designSidebar">
+  <div class="dsb-head">
+    <span>Gespeicherte Designs</span>
+    <button class="top-btn" onclick="toggleDesignSidebar()">✕</button>
+  </div>
+  <div style="padding:6px">
+    <button class="btn acc" onclick="newDesign()" style="width:100%">+ Neues Design</button>
+  </div>
+  <div class="dsb-list" id="designList"></div>
+</div>
+
+<!-- MAIN APP -->
+<div id="appWrap">
+
+<!-- LEFT -->
+<div class="panel">
+  <div class="sec">Felder</div>
+  <div id="fieldList"></div>
+  <div class="sec">Neu hinzufügen</div>
+  <div class="row">
+    <select id="addType" style="flex:1;font-size:10px">
+      <option value="template">✦ Freier Text</option>
+      <option value="time">Uhrzeit HH:MM</option>
+      <option value="seconds">Sekunden</option>
+      <option value="weekday">Wochentag</option>
+      <option value="date">Datum TT.MM</option>
+      <option value="month">Monat</option>
+      <option value="year">Jahr</option>
+      <option value="hr">Herzfrequenz</option>
+      <option value="altitude">Höhenmeter</option>
+      <option value="steps">Schritte</option>
+      <option value="battery">Batterie %</option>
+      <option value="calories">Kalorien</option>
+      <option value="distance">Distanz km</option>
+      <option value="floors">Stockwerke</option>
+      <option value="stress">Stress</option>
+      <option value="rect">▭ Rechteck</option>
+      <option value="circle">◯ Kreis</option>
+    </select>
+    <button class="btn acc" onclick="addField()">+</button>
+  </div>
+  <div class="sec" style="margin-top:6px">Platzhalter-Referenz</div>
+  <table class="ref-table">
+    <tr><td>%H/%h</td><td>Std 00-23 / 1-12</td></tr>
+    <tr><td>%M</td><td>Minute 00-59</td></tr>
+    <tr><td>%S</td><td>Sekunde 00-59</td></tr>
+    <tr><td>%p</td><td>AM / PM</td></tr>
+    <tr><td>%d/%e</td><td>Tag mit/ohne 0</td></tr>
+    <tr><td>%m</td><td>Monat 01-12</td></tr>
+    <tr><td>%b/%B</td><td>Jun / Juni</td></tr>
+    <tr><td>%y/%Y</td><td>Jahr 26 / 2026</td></tr>
+    <tr><td>%w/%W</td><td>So / Sonntag</td></tr>
+    <tr><td>%r</td><td>Herzfrequenz</td></tr>
+    <tr><td>%a</td><td>Höhe m</td></tr>
+    <tr><td>%s</td><td>Schritte</td></tr>
+    <tr><td>%t</td><td>Batterie %</td></tr>
+    <tr><td>%c</td><td>Kalorien</td></tr>
+    <tr><td>%k</td><td>Distanz km</td></tr>
+    <tr><td>%f</td><td>Stockwerke</td></tr>
+    <tr><td>%z</td><td>Stress 0-100</td></tr>
+    <tr><td>%%</td><td>Literal %</td></tr>
+  </table>
+  <div style="font-size:9px;color:#2a2a2a;line-height:1.5;margin-top:2px">z.B. <span style="color:#3a3a3a">%w %e.%m · %H:%M</span></div>
+</div>
+
+<!-- CENTER -->
+<div class="prev-col">
+  <div class="watch-wrap">
+    <div class="wbezel"></div>
+    <div class="wscreen" id="watchScreen">
+      <div class="wbg" id="watchBg"></div>
+      <div class="wdim" id="watchDim"></div>
+      <div class="wfl" id="watchFields"></div>
+    </div>
+  </div>
+  <div style="font-size:9px;color:#2a2a2a;text-align:center">Anklicken · Ziehen · Ecke = Grösse</div>
+  <input type="text" id="designName" value="Mein Design" style="width:200px;text-align:center;font-size:11px" placeholder="Design-Name">
+</div>
+
+<!-- RIGHT EDITOR -->
+<div class="edit-col panel">
+  <div class="tabs">
+    <button class="tab on" onclick="switchTab('feld',0)">Feld</button>
+    <button class="tab" onclick="switchTab('global',1)">Global</button>
+    <button class="tab" onclick="switchTab('bg',2)">Bg</button>
+    <button class="tab" onclick="switchTab('code',3)">Code</button>
+  </div>
+
+  <!-- FELD -->
+  <div class="tp on" id="tp-feld">
+    <div id="nosel" style="font-size:10px;color:#2e2e2e;padding:4px 0">← Feld auswählen</div>
+    <div id="fieldEditor" style="display:none;flex-direction:column;gap:5px">
+      <div class="sec" id="edTitle">Feld</div>
+
+      <!-- Template -->
+      <div id="tplRow" style="display:none">
+        <div class="lbl">Text mit Platzhaltern</div>
+        <textarea id="fTpl" rows="2" oninput="upd('template',this.value);updateTplPreview()"></textarea>
+        <div style="font-size:9px;color:#333;margin:3px 0 2px">Einfügen:</div>
+        <div class="tpl-vars" id="tplVarBtns"></div>
+        <div class="lbl">Ausrichtung</div>
+        <div class="seg" id="alignSeg">
+          <button onclick="upd('align','left');segOn(this)">Links</button>
+          <button class="on" onclick="upd('align','center');segOn(this)">Mitte</button>
+          <button onclick="upd('align','right');segOn(this)">Rechts</button>
+        </div>
+        <div style="font-size:9px;color:#3a3a3a;margin-top:3px">Vorschau: <span id="tplPreview" style="color:#555">—</span></div>
+      </div>
+
+      <!-- Normal type -->
+      <div id="typeRow">
+        <div class="lbl">Typ</div>
+        <select id="fType" onchange="upd('type',this.value)" style="width:100%">
+          <option value="time">Uhrzeit HH:MM</option>
+          <option value="seconds">Sekunden</option>
+          <option value="weekday">Wochentag</option>
+          <option value="date">Datum TT.MM</option>
+          <option value="month">Monat</option>
+          <option value="year">Jahr</option>
+          <option value="hr">Herzfrequenz</option>
+          <option value="altitude">Höhenmeter</option>
+          <option value="steps">Schritte</option>
+          <option value="battery">Batterie %</option>
+          <option value="calories">Kalorien</option>
+          <option value="distance">Distanz km</option>
+          <option value="floors">Stockwerke</option>
+          <option value="stress">Stress</option>
+        </select>
+        <div class="lbl" style="margin-top:5px">Ausrichtung</div>
+        <div class="seg" id="alignSeg2">
+          <button onclick="upd('align','left');segOn(this)">Links</button>
+          <button class="on" onclick="upd('align','center');segOn(this)">Mitte</button>
+          <button onclick="upd('align','right');segOn(this)">Rechts</button>
+        </div>
+      </div>
+
+      <!-- Shape options -->
+      <div id="shapeRow" style="display:none">
+        <div class="lbl">Typ</div>
+        <div id="shapeTypeLabel" style="font-size:11px;color:#777;padding:3px 0"></div>
+        <div class="lbl" style="margin-top:4px">Breite / Höhe</div>
+        <div class="row">
+          <input type="number" id="fW" min="1" max="300" oninput="upd('w',+this.value)" style="flex:1">
+          <input type="number" id="fH" min="1" max="300" oninput="upd('h',+this.value)" style="flex:1">
+        </div>
+        <div class="lbl">Füllung</div>
+        <div class="row">
+          <input type="text" id="fFill" maxlength="7" oninput="updColor('fillColor',this.value)" style="flex:1">
+          <div class="sw" id="fFillSw" onclick="g('fFillNat').click()"></div>
+          <input type="color" id="fFillNat" style="display:none" oninput="g('fFill').value=this.value;updColor('fillColor',this.value)">
+        </div>
+        <div class="lbl">Kontur-Farbe (leer = keine)</div>
+        <div class="row">
+          <input type="text" id="fStroke" maxlength="7" oninput="updColor('strokeColor',this.value)" style="flex:1" placeholder="z.B. #FFFFFF">
+          <div class="sw" id="fStrokeSw" onclick="g('fStrokeNat').click()"></div>
+          <input type="color" id="fStrokeNat" style="display:none" oninput="g('fStroke').value=this.value;updColor('strokeColor',this.value)">
+        </div>
+        <div class="lbl">Kontur-Breite</div>
+        <div class="row">
+          <input type="range" id="fStrokeW" min="1" max="10" value="1" oninput="g('fStrokeWN').value=this.value;upd('strokeWidth',+this.value)" style="flex:1">
+          <input type="number" id="fStrokeWN" min="1" max="10" style="width:40px" oninput="g('fStrokeW').value=this.value;upd('strokeWidth',+this.value)">
+        </div>
+        <div class="lbl">Transparenz</div>
+        <div class="row">
+          <input type="range" id="fOpacity" min="10" max="100" value="100" step="10" oninput="g('fOpacityN').value=this.value+'%';upd('opacity',+this.value)" style="flex:1">
+          <span id="fOpacityN" style="font-size:10px;min-width:30px;color:#555">100%</span>
+        </div>
+      </div>
+
+      <!-- Text fields (hidden for shapes) -->
+      <div id="textSection">
+        <div class="lbl">Schrift</div>
+        <select id="fFont" onchange="upd('font',this.value)" style="width:100%">
+          <optgroup label="Inter">
+            <option value="INTER_THIN">Inter Thin</option>
+            <option value="INTER_REG">Inter Regular</option>
+            <option value="INTER_BOLD">Inter Bold</option>
+          </optgroup>
+          <optgroup label="Garmin System">
+            <option value="FONT_LARGE">System Gross</option>
+            <option value="FONT_MEDIUM">System Mittel</option>
+            <option value="FONT_SMALL">System Klein</option>
+            <option value="FONT_TINY">System Winzig</option>
+            <option value="FONT_NUMBER_MILD">Number Mild</option>
+            <option value="FONT_NUMBER_MEDIUM">Number Medium</option>
+            <option value="FONT_NUMBER_HOT">Number Hot</option>
+          </optgroup>
+          <optgroup label="Eigene Schriften" id="customFontGroup"></optgroup>
+        </select>
+
+        <div class="lbl" style="margin-top:4px">Schriftgrösse</div>
+        <div class="row">
+          <input type="range" id="fSz" min="8" max="80" oninput="g('fSzN').value=this.value;upd('size',+this.value)" style="flex:1">
+          <input type="number" id="fSzN" min="8" max="80" style="width:44px" oninput="g('fSz').value=this.value;upd('size',+this.value)">
+        </div>
+
+        <div class="lbl">Textfarbe</div>
+        <div class="row">
+          <input type="text" id="fCol" maxlength="7" oninput="updColor('color',this.value)" style="flex:1">
+          <div class="sw" id="fColSw" onclick="g('fColNat').click()"></div>
+          <input type="color" id="fColNat" style="display:none" oninput="g('fCol').value=this.value;updColor('color',this.value)">
+        </div>
+
+        <div class="lbl">Kontur (Outline)</div>
+        <div class="row">
+          <input type="text" id="fOutline" maxlength="7" oninput="updColor('outlineColor',this.value)" style="flex:1" placeholder="leer = keine">
+          <div class="sw" id="fOutlineSw" onclick="g('fOutlineNat').click()"></div>
+          <input type="color" id="fOutlineNat" style="display:none" oninput="g('fOutline').value=this.value;updColor('outlineColor',this.value)">
+        </div>
+        <div class="row" id="outlineWidthRow">
+          <span style="font-size:10px;color:#444;width:50px;flex-shrink:0">Stärke</span>
+          <input type="range" id="fOutlineW" min="1" max="5" value="1" oninput="g('fOutlineWN').value=this.value;upd('outlineWidth',+this.value)" style="flex:1">
+          <input type="number" id="fOutlineWN" min="1" max="5" style="width:40px" oninput="g('fOutlineW').value=this.value;upd('outlineWidth',+this.value)">
+        </div>
+
+        <div id="iconSection">
+          <div class="lbl" style="margin-top:2px">Symbol</div>
+          <div class="ig" id="iconGrid"></div>
+          <div class="row" style="margin-top:3px">
+            <div class="upl" style="flex:1;padding:5px;font-size:9px" onclick="g('iconUpload').click()">↑ PNG / SVG Symbol</div>
+            <input type="file" id="iconUpload" accept="image/*,.svg" style="display:none" onchange="loadCustomIcon(this)">
+          </div>
+          <div class="lbl">Symbolfarbe (SVG)</div>
+          <div class="row">
+            <input type="text" id="fIco" maxlength="7" oninput="updColor('iconColor',this.value)" style="flex:1" placeholder="#FFFFFF">
+            <div class="sw" id="fIcoSw" onclick="g('fIcoNat').click()"></div>
+            <input type="color" id="fIcoNat" style="display:none" oninput="g('fIco').value=this.value;updColor('iconColor',this.value)">
+            <button class="btn sm" onclick="linkIconColor()" id="linkBtn">🔗</button>
+          </div>
+          <div class="lbl">Symbol-Position</div>
+          <div class="seg" id="iconPosSeg">
+            <button onclick="upd('iconPos','left');segOn(this)">Links</button>
+            <button class="on" onclick="upd('iconPos','none');segOn(this)">Kein</button>
+            <button onclick="upd('iconPos','right');segOn(this)">Rechts</button>
+          </div>
+          <div class="lbl" style="margin-top:4px">Symbolgrösse</div>
+          <div class="row">
+            <input type="range" id="fIcoSz" min="8" max="60" oninput="g('fIcoSzN').value=this.value;upd('iconSize',+this.value)" style="flex:1">
+            <input type="number" id="fIcoSzN" min="8" max="60" style="width:44px" oninput="g('fIcoSz').value=this.value;upd('iconSize',+this.value)">
+          </div>
+        </div>
+      </div>
+
+      <div class="lbl">Position X / Y</div>
+      <div class="row">
+        <input type="number" id="fX" min="0" max="420" oninput="upd('x',+this.value)" style="flex:1">
+        <input type="number" id="fY" min="0" max="420" oninput="upd('y',+this.value)" style="flex:1">
+      </div>
+      <button class="btn del" onclick="deleteField()">Feld löschen</button>
+    </div>
+  </div>
+
+  <!-- GLOBAL -->
+  <div class="tp" id="tp-global">
+    <div class="sec">Projekt</div>
+    <div class="lbl">Projektname (= VS Code Ordnername)</div>
+    <input type="text" id="projectName" value="MWF1" oninput="updateCode()">
+    <div class="sec">Gerät</div>
+    <select id="deviceSel" style="width:100%" onchange="updateCode()">
+      <option value="fr265">Forerunner 265 (416×416)</option>
+      <option value="fr265s">Forerunner 265S (360×360)</option>
+      <option value="fr255">Forerunner 255 (260×260)</option>
+      <option value="fr745">Forerunner 745 (240×240)</option>
+      <option value="fr955">Forerunner 955 (260×260)</option>
+      <option value="fenix7">Fenix 7 (280×280)</option>
+      <option value="fenix7s">Fenix 7S (240×240)</option>
+      <option value="fenix6">Fenix 6 (260×260)</option>
+      <option value="epix2">Epix Gen 2 (416×416)</option>
+      <option value="venu2">Venu 2 (390×390)</option>
+    </select>
+    <div class="sec">Eigene Schriften (.ttf / .otf)</div>
+    <div class="upl" onclick="g('fontUpload').click()">
+      ↑ Schrift hochladen (.ttf / .otf)
+      <div id="fontUploadStatus" style="font-size:9px;color:#2e2e2e;margin-top:3px">Wird in Cloud gespeichert</div>
+    </div>
+    <input type="file" id="fontUpload" accept=".ttf,.otf" style="display:none" onchange="uploadFont(this)">
+    <div id="fontList" style="display:flex;flex-direction:column;gap:3px"></div>
+  </div>
+
+  <!-- BG -->
+  <div class="tp" id="tp-bg">
+    <div class="sec">Hintergrundfarbe</div>
+    <div class="row">
+      <input type="text" id="bgHex" value="#000000" maxlength="7" oninput="applyBgColor(this.value)" style="flex:1">
+      <div class="sw" id="bgSw" style="background:#000" onclick="g('bgNat').click()"></div>
+      <input type="color" id="bgNat" value="#000000" style="display:none" oninput="g('bgHex').value=this.value;applyBgColor(this.value)">
+    </div>
+    <div class="sec">Hintergrundbild</div>
+    <div class="upl" onclick="g('bgUp').click()">↑ Bild hochladen (PNG/JPG)<div id="bgFn" style="margin-top:3px;font-size:9px;color:#2e2e2e">Wird in Cloud gespeichert</div></div>
+    <input type="file" id="bgUp" accept="image/*" style="display:none" onchange="uploadBgImage(this)">
+    <button class="btn" onclick="clearBg()" style="margin-top:2px">Bild entfernen</button>
+    <div class="sec">Abdunklung</div>
+    <div class="row">
+      <input type="range" id="dimR" min="0" max="90" value="0" step="5" oninput="applyDim(this.value)" style="flex:1">
+      <span id="dimV" style="font-size:10px;min-width:26px;color:#444">0%</span>
+    </div>
+  </div>
+
+  <!-- CODE -->
+  <div class="tp" id="tp-code">
+    <div style="font-size:9px;color:#333;line-height:1.5">Direkt compilierbar — keine Anpassungen nötig.</div>
+    <div class="code-out" id="codeOut"></div>
+    <div style="display:flex;gap:5px">
+      <button class="btn" onclick="copyCode()" id="cpBtn" style="flex:1">Kopieren</button>
+      <button class="btn acc" onclick="dlCode()">↓ .mc</button>
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPABASE_URL='https://ahcdqjpmtpqtzolymxhi.supabase.co';
+const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoY2RxanBtdHBxdHpvbHlteGhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4Mzg4MjYsImV4cCI6MjA5NjQxNDgyNn0.HEIFscMe_EMWQ90v6ghhWm0OeafZEzrljX3rvrvnDoI';
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+let currentUser=null;
+let currentDesignId=null;
+
+// ── AUTH ────────────────────────────────────────────────────────
+let authMode='login';
+function authTab(mode,btn){
+  authMode=mode;
+  document.querySelectorAll('.auth-tab').forEach(t=>t.classList.remove('on'));
+  btn.classList.add('on');
+  g('authBtn').textContent=mode==='login'?'Login':'Registrieren';
+  g('authConfirmRow').style.display=mode==='signup'?'':'none';
+  g('authErr').textContent='';
+}
+
+async function doAuth(){
+  const email=g('authEmail').value.trim();
+  const pw=g('authPw').value;
+  if(!email||!pw){g('authErr').textContent='E-Mail und Passwort erforderlich';return;}
+  g('authBtn').innerHTML='<span class="spinner"></span>...';
+  g('authErr').textContent='';
+  try{
+    let res;
+    if(authMode==='signup'){
+      if(pw!==g('authPw2').value){g('authErr').textContent='Passwörter stimmen nicht überein';g('authBtn').textContent='Registrieren';return;}
+      res=await sb.auth.signUp({email,password:pw});
+      if(!res.error&&res.data.user){toast('Bestätigungs-E-Mail gesendet! Bitte bestätigen.');g('authBtn').textContent='Registrieren';return;}
+    } else {
+      res=await sb.auth.signInWithPassword({email,password:pw});
+    }
+    if(res.error)throw res.error;
+    currentUser=res.data.user;
+    onLoggedIn();
+  }catch(e){g('authErr').textContent=e.message;g('authBtn').textContent=authMode==='login'?'Login':'Registrieren';}
+}
+
+function onLoggedIn(){
+  g('authOverlay').style.display='none';
+  g('userEmail').textContent=currentUser.email;
+  loadFontsFromCloud();
+  loadDesignList();
+}
+
+async function doLogout(){
+  await sb.auth.signOut();
+  location.reload();
+}
+
+// check session on load
+sb.auth.getSession().then(({data:{session}})=>{
+  if(session){currentUser=session.user;onLoggedIn();}
+});
+
+// ── TOAST ───────────────────────────────────────────────────────
+function toast(msg,err=false){
+  const t=g('toast');t.textContent=msg;t.className='toast'+(err?' err':'');
+  t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000);
+}
+
+// ── DESIGN SIDEBAR ──────────────────────────────────────────────
+function toggleDesignSidebar(){
+  g('designSidebar').classList.toggle('open');
+}
+
+async function loadDesignList(){
+  if(!currentUser)return;
+  const{data,error}=await sb.from('gwd_designs').select('id,name,device,updated_at').eq('user_id',currentUser.id).order('updated_at',{ascending:false});
+  if(error){console.error(error);return;}
+  const list=g('designList');list.innerHTML='';
+  if(!data||data.length===0){list.innerHTML='<div style="font-size:9px;color:#2e2e2e;padding:8px">Noch keine Designs gespeichert.</div>';return;}
+  data.forEach(d=>{
+    const el=document.createElement('div');el.className='dsb-item';
+    const date=new Date(d.updated_at).toLocaleDateString('de-CH');
+    el.innerHTML=`<div class="di-name">${d.name}<span class="di-del" onclick="event.stopPropagation();deleteDesign('${d.id}')">× löschen</span></div><div class="di-meta">${d.device} · ${date}</div>`;
+    el.onclick=()=>loadDesign(d.id);
+    list.appendChild(el);
+  });
+}
+
+async function saveDesign(){
+  if(!currentUser){toast('Nicht eingeloggt',true);return;}
+  const btn=g('saveBtn');btn.innerHTML='<span class="spinner"></span>';
+  const payload={
+    user_id:currentUser.id,
+    name:g('designName').value||'Mein Design',
+    device:g('deviceSel').value,
+    project_name:g('projectName').value||'MWF1',
+    bg_color:g('bgHex').value,
+    bg_image_url:bgImageUrl||null,
+    dim_value:+g('dimR').value,
+    fields:fields
+  };
+  let res;
+  if(currentDesignId){
+    res=await sb.from('gwd_designs').update(payload).eq('id',currentDesignId);
+  } else {
+    res=await sb.from('gwd_designs').insert(payload).select('id').single();
+    if(res.data)currentDesignId=res.data.id;
+  }
+  btn.textContent='↑ Speichern';
+  if(res.error){toast('Fehler: '+res.error.message,true);return;}
+  toast('Design gespeichert ✓');
+  loadDesignList();
+}
+
+async function loadDesign(id){
+  const{data,error}=await sb.from('gwd_designs').select('*').eq('id',id).single();
+  if(error||!data){toast('Fehler beim Laden',true);return;}
+  currentDesignId=data.id;
+  g('designName').value=data.name;
+  g('deviceSel').value=data.device;
+  g('projectName').value=data.project_name;
+  g('bgHex').value=data.bg_color||'#000000';
+  applyBgColor(data.bg_color||'#000000');
+  g('dimR').value=data.dim_value||0;
+  applyDim(data.dim_value||0);
+  if(data.bg_image_url){
+    bgImageUrl=data.bg_image_url;
+    g('watchBg').style.backgroundImage=`url(${bgImageUrl})`;
+    g('watchBg').style.backgroundSize='cover';
+    g('bgFn').textContent='Bild geladen';
+  }
+  fields=data.fields||[];
+  nextId=fields.length?Math.max(...fields.map(f=>f.id))+1:0;
+  selId=null;g('nosel').style.display='';g('fieldEditor').style.display='none';
+  render();updateCode();
+  toggleDesignSidebar();
+  toast('Design geladen ✓');
+}
+
+async function deleteDesign(id){
+  if(!confirm('Design löschen?'))return;
+  await sb.from('gwd_designs').delete().eq('id',id);
+  if(currentDesignId===id){currentDesignId=null;newDesign();}
+  loadDesignList();toast('Gelöscht');
+}
+
+function newDesign(){
+  currentDesignId=null;
+  g('designName').value='Mein Design';
+  fields=[
+    {id:0,type:'time',template:'',x:120,y:100,size:36,color:'#FFFFFF',iconColor:'#888',iconLinked:false,font:'INTER_BOLD',icon:'',iconPos:'none',iconSize:16,customIcon:null,align:'center',outlineColor:'',outlineWidth:1},
+    {id:1,type:'template',template:'%w %e.%m.%Y',x:120,y:142,size:13,color:'#BBBBBB',iconColor:'#888',iconLinked:false,font:'INTER_REG',icon:'',iconPos:'none',iconSize:12,customIcon:null,align:'center',outlineColor:'',outlineWidth:1},
+    {id:2,type:'hr',template:'',x:70,y:192,size:13,color:'#FF4444',iconColor:'#FF4444',iconLinked:true,font:'INTER_REG',icon:'♥',iconPos:'left',iconSize:12,customIcon:null,align:'center',outlineColor:'',outlineWidth:1},
+    {id:3,type:'altitude',template:'',x:188,y:192,size:13,color:'#44AAFF',iconColor:'#44AAFF',iconLinked:true,font:'INTER_REG',icon:'▲',iconPos:'left',iconSize:11,customIcon:null,align:'center',outlineColor:'',outlineWidth:1},
+  ];
+  nextId=4;selId=null;bgImageUrl=null;
+  g('nosel').style.display='';g('fieldEditor').style.display='none';
+  g('watchBg').style.backgroundImage='';g('watchBg').style.background='#000000';
+  g('bgHex').value='#000000';g('dimR').value=0;applyDim(0);
+  render();updateCode();toggleDesignSidebar();
+}
+
+// ── FONTS (CLOUD) ────────────────────────────────────────────────
+let customFonts=[];
+let fontIdCtr=0;
+
+async function uploadFont(inp){
+  const file=inp.files[0];if(!file||!currentUser)return;
+  inp.value='';
+  const name=file.name.replace(/\.[^.]+$/,'');
+  const ext=file.name.split('.').pop();
+  const path=`${currentUser.id}/fonts/${Date.now()}_${file.name}`;
+  g('fontUploadStatus').innerHTML='<span class="spinner"></span>Hochladen...';
+  const{data,error}=await sb.storage.from('watchface-assets').upload(path,file,{contentType:'font/'+ext});
+  if(error){toast('Upload-Fehler: '+error.message,true);g('fontUploadStatus').textContent='Fehler';return;}
+  const{data:{publicUrl}}=sb.storage.from('watchface-assets').getPublicUrl(path);
+  // save to db
+  const{data:dbData}=await sb.from('gwd_fonts').insert({user_id:currentUser.id,name,storage_path:path,url:publicUrl}).select('id').single();
+  g('fontUploadStatus').textContent='Wird in Cloud gespeichert';
+  addFontToUI({id:dbData?.id,name,url:publicUrl,path});
+  toast('Schrift "'+name+'" hochgeladen ✓');
+}
+
+async function loadFontsFromCloud(){
+  if(!currentUser)return;
+  const{data,error}=await sb.from('gwd_fonts').select('*').eq('user_id',currentUser.id).order('created_at');
+  if(error||!data)return;
+  data.forEach(f=>addFontToUI(f,false));
+}
+
+function addFontToUI(f,notify=true){
+  const family='CF_'+fontIdCtr++;
+  // inject @font-face
+  const s=document.createElement('style');
+  s.textContent=`@font-face{font-family:'${family}';src:url('${f.url}')}`;
+  document.head.appendChild(s);
+  customFonts.push({...f,family});
+  updateFontList();
+  updateFontSelects();
+}
+
+async function removeFont(dbId,storagePath,cssFamily){
+  if(!confirm('Schrift löschen?'))return;
+  await sb.from('gwd_fonts').delete().eq('id',dbId);
+  await sb.storage.from('watchface-assets').remove([storagePath]);
+  customFonts=customFonts.filter(f=>f.id!==dbId);
+  fields.forEach(f=>{if(f.font===cssFamily)f.font='INTER_REG';});
+  updateFontList();updateFontSelects();render();toast('Schrift gelöscht');
+}
+
+function updateFontList(){
+  const l=g('fontList');l.innerHTML='';
+  if(customFonts.length===0){
+    l.innerHTML='<div style="font-size:9px;color:#2a2a2a;padding:3px 0">Noch keine Schriften</div>';return;
+  }
+  customFonts.forEach(f=>{
+    const el=document.createElement('div');el.className='font-item';
+    el.innerHTML=`<span class="fn-name" style="font-family:'${f.family}'">${f.name}</span><span class="fn-del" onclick="removeFont('${f.id}','${f.path}','${f.family}')">× del</span>`;
+    l.appendChild(el);
+  });
+}
+
+function updateFontSelects(){
+  const grp=g('customFontGroup');if(!grp)return;
+  grp.innerHTML='';
+  customFonts.forEach(f=>{
+    const o=document.createElement('option');o.value=f.family;o.textContent=f.name;grp.appendChild(o);
+  });
+}
+
+// ── BG IMAGE (CLOUD) ─────────────────────────────────────────────
+let bgImageUrl=null;
+
+async function uploadBgImage(inp){
+  const file=inp.files[0];if(!file||!currentUser)return;
+  inp.value='';
+  const path=`${currentUser.id}/bg/${Date.now()}_${file.name}`;
+  g('bgFn').innerHTML='<span class="spinner"></span>Hochladen...';
+  const{error}=await sb.storage.from('watchface-assets').upload(path,file,{contentType:file.type});
+  if(error){toast('Upload-Fehler: '+error.message,true);g('bgFn').textContent='Fehler';return;}
+  const{data:{publicUrl}}=sb.storage.from('watchface-assets').getPublicUrl(path);
+  bgImageUrl=publicUrl;
+  g('watchBg').style.backgroundImage=`url(${publicUrl})`;
+  g('watchBg').style.backgroundSize='cover';
+  g('bgFn').textContent=file.name+' ✓';
+  toast('Hintergrundbild hochgeladen ✓');
+  updateCode();
+}
+
+function clearBg(){bgImageUrl=null;g('watchBg').style.backgroundImage='';g('watchBg').style.background=g('bgHex').value;g('bgFn').textContent='Wird in Cloud gespeichert';}
+function applyBgColor(hex){if(!bgImageUrl)g('watchBg').style.background=hex;g('bgSw').style.background=hex;try{g('bgNat').value=hex}catch(e){}updateCode();}
+function applyDim(v){g('dimV').textContent=v+'%';g('watchDim').style.background=`rgba(0,0,0,${v/100})`;}
+
+// ── TEMPLATE ─────────────────────────────────────────────────────
+const TPL_VARS=[['%H','Std24'],['%h','Std12'],['%M','Min'],['%S','Sek'],['%p','AM/PM'],['%d','Tag'],['%e','Tag(no0)'],['%m','Monat#'],['%b','Mon.kurz'],['%B','Mon.lang'],['%y','Jahr2'],['%Y','Jahr4'],['%w','Wtag kurz'],['%W','Wtag lang'],['%r','HR'],['%a','Höhe'],['%s','Schritte'],['%t','Batt'],['%c','Kal'],['%k','km'],['%f','Stockw'],['%z','Stress'],['%%','%']];
+const SAMPLE_NOW={H:'14',h:'2',M:'23',S:'07',p:'PM',d:'07',e:'7',m:'06',b:'Jun',B:'Juni',y:'26',Y:'2026',w:'So',W:'Sonntag',r:'72',a:'437',s:'6284',t:'85',c:'1840',k:'8.4',f:'12',z:'34'};
+
+function renderTpl(tpl){
+  if(!tpl)return '—';
+  return tpl.replace(/%([HhMSpdembBYywWrastkckfz%])/g,(m,k)=>{if(k==='%')return '%';return SAMPLE_NOW[k]||m;});
+}
+
+function updateTplPreview(){
+  const f=selId!==null?fields.find(x=>x.id===selId):null;
+  g('tplPreview').textContent=f?renderTpl(f.template):'—';
+}
+
+function buildTplVarBtns(){
+  const c=g('tplVarBtns');c.innerHTML='';
+  TPL_VARS.forEach(([v,lbl])=>{
+    const b=document.createElement('button');b.className='tv';b.title=lbl;b.textContent=v;
+    b.onclick=()=>{
+      const ta=g('fTpl');const pos=ta.selectionStart;
+      ta.value=ta.value.slice(0,pos)+v+ta.value.slice(ta.selectionEnd);
+      ta.selectionStart=ta.selectionEnd=pos+v.length;ta.focus();
+      upd('template',ta.value);updateTplPreview();
+    };
+    c.appendChild(b);
+  });
+}
+
+// ── FIELD DATA ───────────────────────────────────────────────────
+const LABELS={template:'Freier Text',time:'Uhrzeit',seconds:'Sekunden',weekday:'Wochentag',date:'Datum',month:'Monat',year:'Jahr',hr:'Herzfrequenz',altitude:'Höhenmeter',steps:'Schritte',battery:'Batterie',calories:'Kalorien',distance:'Distanz',floors:'Stockwerke',stress:'Stress',rect:'Rechteck',circle:'Kreis'};
+const DFLT_COL={template:'#FFFFFF',time:'#FFFFFF',seconds:'#777',weekday:'#BBBBBB',date:'#FFFFFF',month:'#999',year:'#666',hr:'#FF4444',altitude:'#44AAFF',steps:'#88EE88',battery:'#FFDD44',calories:'#FF8844',distance:'#44DDAA',floors:'#AA88FF',stress:'#FF6688',rect:'#FFFFFF',circle:'#FFFFFF'};
+const ICONS_DEF={hr:'♥',altitude:'▲',battery:'⚡',steps:'◎',calories:'🔥',distance:'⬤',floors:'⬆',stress:'◈'};
+const BUILTIN_ICONS=['♥','▲','⚡','◎','🔥','↑','↓','◈','★','⬤','◆','▶','●','■','✦','⊕','⊗','≈','∞','◐'];
+const SHAPES=['rect','circle'];
+const SAMPLE_VALS={time:'14:23',seconds:'07',weekday:'So',date:'07.06',month:'Juni',year:'2026',hr:'72',altitude:'437',steps:'6284',battery:'85',calories:'1840',distance:'8.4',floors:'12',stress:'34'};
+
+let fields=[
+  {id:0,type:'time',template:'',x:120,y:100,size:36,color:'#FFFFFF',iconColor:'#888',iconLinked:false,font:'INTER_BOLD',icon:'',iconPos:'none',iconSize:16,customIcon:null,align:'center',outlineColor:'',outlineWidth:1},
+  {id:1,type:'template',template:'%w %e.%m.%Y',x:120,y:142,size:13,color:'#BBBBBB',iconColor:'#888',iconLinked:false,font:'INTER_REG',icon:'',iconPos:'none',iconSize:12,customIcon:null,align:'center',outlineColor:'',outlineWidth:1},
+  {id:2,type:'hr',template:'',x:70,y:192,size:13,color:'#FF4444',iconColor:'#FF4444',iconLinked:true,font:'INTER_REG',icon:'♥',iconPos:'left',iconSize:12,customIcon:null,align:'center',outlineColor:'',outlineWidth:1},
+  {id:3,type:'altitude',template:'',x:188,y:192,size:13,color:'#44AAFF',iconColor:'#44AAFF',iconLinked:true,font:'INTER_REG',icon:'▲',iconPos:'left',iconSize:11,customIcon:null,align:'center',outlineColor:'',outlineWidth:1},
+];
+let nextId=4;
+let selId=null;
+
+function g(id){return document.getElementById(id)}
+
+// ── CSS FONT HELPERS ─────────────────────────────────────────────
+function cssFontFamily(font){
+  const cf=customFonts.find(f=>f.family===font);
+  if(cf)return`'${cf.family}',sans-serif`;
+  if(font.startsWith('INTER'))return"'Inter',sans-serif";
+  return"'Courier New',monospace";
+}
+function cssFontWeight(font){
+  if(font==='INTER_THIN')return'300';
+  if(font==='INTER_BOLD')return'700';
+  return'400';
+}
+
+// ── RENDER ───────────────────────────────────────────────────────
+function getSample(f){
+  if(f.type==='template')return renderTpl(f.template)||'Freier Text';
+  return SAMPLE_VALS[f.type]||'--';
+}
+
+function applyOutlineStyle(el,f){
+  if(f.outlineColor&&f.outlineColor.length===7){
+    el.style.textShadow=`-${f.outlineWidth}px -${f.outlineWidth}px 0 ${f.outlineColor},${f.outlineWidth}px -${f.outlineWidth}px 0 ${f.outlineColor},-${f.outlineWidth}px ${f.outlineWidth}px 0 ${f.outlineColor},${f.outlineWidth}px ${f.outlineWidth}px 0 ${f.outlineColor}`;
+  } else {
+    el.style.textShadow='';
+  }
+}
+
+function render(){
+  const c=g('watchFields');c.innerHTML='';
+  fields.forEach(f=>{
+    if(SHAPES.includes(f.type)){renderShape(c,f);return;}
+    const el=document.createElement('div');
+    el.className='wf'+(f.id===selId?' sel':'');
+    el.dataset.id=f.id;
+    el.style.left=f.x+'px';el.style.top=f.y+'px';
+    el.style.fontFamily=cssFontFamily(f.font);
+    el.style.fontWeight=cssFontWeight(f.font);
+    el.style.fontSize=f.size+'px';el.style.color=f.color;
+    applyOutlineStyle(el,f);
+    const iconColor=f.iconLinked?f.color:f.iconColor;
+    if(f.iconPos==='left'&&f.icon){const ic=mkIcon(f,iconColor);if(ic)el.appendChild(ic);}
+    const tx=document.createElement('span');tx.className='wft';tx.textContent=getSample(f);
+    el.appendChild(tx);
+    if(f.iconPos==='right'&&f.icon){const ic=mkIcon(f,iconColor);if(ic)el.appendChild(ic);}
+    const rh=document.createElement('div');rh.className='rh';rh.dataset.resize='1';el.appendChild(rh);
+    el.addEventListener('mousedown',e=>{if(e.target.dataset.resize){startResize(e,f.id);return;}selectField(f.id);startDrag(e,f.id);});
+    el.addEventListener('click',e=>{e.stopPropagation();selectField(f.id);});
+    c.appendChild(el);
+  });
+  renderList();
+}
+
+function renderShape(c,f){
+  const el=document.createElement('div');
+  el.className='wshape'+(f.id===selId?' sel':'');
+  el.dataset.id=f.id;
+  const w=f.w||40,h=f.h||40;
+  el.style.left=f.x+'px';el.style.top=f.y+'px';
+  el.style.width=w+'px';el.style.height=h+'px';
+  el.style.transform='translate(-50%,-50%)';
+  el.style.opacity=(f.opacity||100)/100;
+  if(f.type==='circle'){
+    el.style.borderRadius='50%';
+  }
+  el.style.background=f.fillColor||'rgba(255,255,255,0.1)';
+  if(f.strokeColor){
+    el.style.border=`${f.strokeWidth||1}px solid ${f.strokeColor}`;
+  } else {
+    el.style.border='none';
+  }
+  const rh=document.createElement('div');rh.className='srh';rh.dataset.resize='1';el.appendChild(rh);
+  el.addEventListener('mousedown',e=>{
+    if(e.target.dataset.resize){startResizeShape(e,f.id);return;}
+    selectField(f.id);startDrag(e,f.id);
+  });
+  el.addEventListener('click',e=>{e.stopPropagation();selectField(f.id);});
+  c.appendChild(el);
+}
+
+function mkIcon(f,color){
+  const ic=document.createElement('span');
+  ic.style.fontSize=f.iconSize+'px';ic.style.color=color;ic.style.flexShrink='0';
+  if(f.customIcon&&f.customIcon.startsWith('data:image/svg')){
+    // SVG with color replacement
+    const parser=new DOMParser();
+    const svgStr=atob(f.customIcon.split(',')[1]);
+    const doc=parser.parseFromString(svgStr,'image/svg+xml');
+    const svg=doc.documentElement;
+    svg.querySelectorAll('[fill]:not([fill="none"])').forEach(el=>el.setAttribute('fill',color));
+    svg.querySelectorAll('[stroke]:not([stroke="none"])').forEach(el=>el.setAttribute('stroke',color));
+    svg.style.cssText=`width:${f.iconSize}px;height:${f.iconSize}px;vertical-align:middle`;
+    const blob=new Blob([svg.outerHTML],{type:'image/svg+xml'});
+    const url=URL.createObjectURL(blob);
+    const img=document.createElement('img');img.src=url;img.style.cssText=`width:${f.iconSize}px;height:${f.iconSize}px;vertical-align:middle`;
+    ic.appendChild(img);
+  } else if(f.customIcon){
+    const img=document.createElement('img');img.src=f.customIcon;img.style.cssText=`width:${f.iconSize}px;height:${f.iconSize}px;vertical-align:middle`;
+    ic.appendChild(img);
+  } else {ic.textContent=f.icon;}
+  return ic;
+}
+
+function renderList(){
+  const l=g('fieldList');l.innerHTML='';
+  fields.forEach(f=>{
+    const el=document.createElement('div');el.className='fi'+(f.id===selId?' sel':'');
+    const lbl=f.type==='template'?('✦ '+(f.template||'Freier Text')):LABELS[f.type]||f.type;
+    el.innerHTML=`<div class="dot" style="background:${SHAPES.includes(f.type)?(f.fillColor||'#555'):f.color}"></div><span class="fn" title="${lbl}">${lbl.slice(0,22)}</span><span class="fi2">${SHAPES.includes(f.type)?((f.w||40)+'×'+(f.h||40)):f.size+'px'}</span>`;
+    el.onclick=()=>selectField(f.id);
+    l.appendChild(el);
+  });
+}
+
+// ── SELECT ───────────────────────────────────────────────────────
+function selectField(id){
+  selId=id;render();
+  const f=fields.find(x=>x.id===id);
+  if(!f){g('nosel').style.display='';g('fieldEditor').style.display='none';return;}
+  g('nosel').style.display='none';g('fieldEditor').style.display='flex';
+  g('edTitle').textContent=(LABELS[f.type]||f.type)+' bearbeiten';
+  const isShape=SHAPES.includes(f.type);
+  const isTpl=f.type==='template';
+  g('tplRow').style.display=isTpl?'':'none';
+  g('typeRow').style.display=(!isTpl&&!isShape)?'':'none';
+  g('shapeRow').style.display=isShape?'':'none';
+  g('textSection').style.display=isShape?'none':'';
+  if(isShape){
+    g('shapeTypeLabel').textContent=f.type==='rect'?'Rechteck':'Kreis';
+    g('fW').value=f.w||40;g('fH').value=f.h||40;
+    setCol('fFill','fFillSw','fFillNat',f.fillColor||'#444444');
+    setCol('fStroke','fStrokeSw','fStrokeNat',f.strokeColor||'');
+    g('fStrokeW').value=f.strokeWidth||1;g('fStrokeWN').value=f.strokeWidth||1;
+    g('fOpacity').value=f.opacity||100;g('fOpacityN').textContent=(f.opacity||100)+'%';
+  } else {
+    if(isTpl){g('fTpl').value=f.template||'';buildTplVarBtns();updateTplPreview();setAlignSeg('alignSeg',f.align||'center');}
+    else {g('fType').value=f.type;setAlignSeg('alignSeg2',f.align||'center');}
+    g('fFont').value=f.font;
+    g('fSz').value=f.size;g('fSzN').value=f.size;
+    setCol('fCol','fColSw','fColNat',f.color);
+    setCol('fIco','fIcoSw','fIcoNat',f.iconLinked?f.color:f.iconColor);
+    setCol('fOutline','fOutlineSw','fOutlineNat',f.outlineColor||'');
+    g('fOutlineW').value=f.outlineWidth||1;g('fOutlineWN').value=f.outlineWidth||1;
+    g('linkBtn').textContent=f.iconLinked?'🔗':'🔓';
+    renderIconGrid(f);
+    setAlignSeg('iconPosSeg',null,['left','none','right'],f.iconPos||'none');
+    g('fIcoSz').value=f.iconSize;g('fIcoSzN').value=f.iconSize;
+  }
+  g('fX').value=f.x;g('fY').value=f.y;
+  updateCode();
+}
+
+function setAlignSeg(segId,val,vals=['left','center','right'],overrideVal){
+  const v=overrideVal!==undefined?overrideVal:val;
+  const btns=g(segId).querySelectorAll('button');
+  btns.forEach((b,i)=>b.classList.toggle('on',vals[i]===v));
+}
+
+function setCol(ti,si,ni,hex){
+  g(ti).value=hex||'';g(si).style.background=hex||'transparent';
+  try{if(hex&&hex.length===7)g(ni).value=hex}catch(e){}
+}
+
+function renderIconGrid(f){
+  const grid=g('iconGrid');grid.innerHTML='';
+  const nb=document.createElement('button');nb.className='ib'+(f.icon===''?' on':'');nb.textContent='∅';
+  nb.onclick=()=>{upd('icon','');upd('iconPos','none');renderIconGrid(fields.find(x=>x.id===selId));};
+  grid.appendChild(nb);
+  BUILTIN_ICONS.forEach(ic=>{
+    const b=document.createElement('button');b.className='ib'+(f.icon===ic?' on':'');b.textContent=ic;
+    b.onclick=()=>{upd('icon',ic);upd('customIcon',null);if(fields.find(x=>x.id===selId).iconPos==='none')upd('iconPos','left');renderIconGrid(fields.find(x=>x.id===selId));};
+    grid.appendChild(b);
+  });
+}
+
+function loadCustomIcon(inp){
+  const file=inp.files[0];if(!file)return;
+  const r=new FileReader();
+  r.onload=e=>{
+    if(selId===null)return;
+    const f=fields.find(x=>x.id===selId);
+    f.customIcon=e.target.result;f.icon='★';
+    if(f.iconPos==='none')f.iconPos='left';
+    render();selectField(selId);updateCode();
+  };
+  r.readAsDataURL(file);
+}
+
+function segOn(btn){btn.parentElement.querySelectorAll('button').forEach(b=>b.classList.remove('on'));btn.classList.add('on');}
+function linkIconColor(){if(selId===null)return;const f=fields.find(x=>x.id===selId);f.iconLinked=!f.iconLinked;g('linkBtn').textContent=f.iconLinked?'🔗':'🔓';if(f.iconLinked)f.iconColor=f.color;render();updateCode();}
+
+function upd(prop,val){if(selId===null)return;const f=fields.find(x=>x.id===selId);if(!f)return;f[prop]=val;render();updateCode();}
+function updColor(prop,val){
+  if(selId===null)return;const f=fields.find(x=>x.id===selId);if(!f)return;f[prop]=val;
+  if(prop==='color'){g('fColSw').style.background=val;try{g('fColNat').value=val}catch(e){}if(f.iconLinked){f.iconColor=val;setCol('fIco','fIcoSw','fIcoNat',val);}}
+  if(prop==='iconColor'){g('fIcoSw').style.background=val;try{g('fIcoNat').value=val}catch(e){}}
+  if(prop==='outlineColor'){g('fOutlineSw').style.background=val||'transparent';try{if(val&&val.length===7)g('fOutlineNat').value=val}catch(e){}}
+  if(prop==='fillColor'){g('fFillSw').style.background=val;try{g('fFillNat').value=val}catch(e){}}
+  if(prop==='strokeColor'){g('fStrokeSw').style.background=val||'transparent';try{if(val&&val.length===7)g('fStrokeNat').value=val}catch(e){}}
+  render();updateCode();
+}
+
+function addField(){
+  const type=g('addType').value;
+  const isShape=SHAPES.includes(type);
+  const ic=ICONS_DEF[type]||'';
+  const base={id:nextId++,type,x:120,y:120,align:'center'};
+  if(isShape){
+    fields.push({...base,w:50,h:type==='circle'?50:30,fillColor:'rgba(255,255,255,0.1)',strokeColor:'#FFFFFF',strokeWidth:1,opacity:80});
+  } else {
+    fields.push({...base,template:type==='template'?'%w %e.%m':''  ,size:14,color:DFLT_COL[type]||'#FFFFFF',iconColor:DFLT_COL[type]||'#FFFFFF',iconLinked:true,font:'INTER_REG',icon:ic,iconPos:ic?'left':'none',iconSize:12,customIcon:null,outlineColor:'',outlineWidth:1});
+  }
+  render();updateCode();
+}
+
+function deleteField(){
+  if(selId===null)return;
+  fields=fields.filter(f=>f.id!==selId);selId=null;
+  g('nosel').style.display='';g('fieldEditor').style.display='none';
+  render();updateCode();
+}
+
+// ── DRAG ─────────────────────────────────────────────────────────
+function startDrag(e,fId){
+  e.preventDefault();
+  const f=fields.find(x=>x.id===fId);
+  const ox=f.x,oy=f.y,sx=e.clientX,sy=e.clientY;
+  function mv(me){f.x=Math.round(Math.max(0,Math.min(240,ox+(me.clientX-sx))));f.y=Math.round(Math.max(0,Math.min(240,oy+(me.clientY-sy))));g('fX').value=f.x;g('fY').value=f.y;render();}
+  function up(){document.removeEventListener('mousemove',mv);document.removeEventListener('mouseup',up);updateCode();}
+  document.addEventListener('mousemove',mv);document.addEventListener('mouseup',up);
+}
+
+function startResize(e,fId){
+  e.preventDefault();e.stopPropagation();
+  const f=fields.find(x=>x.id===fId);const os=f.size,sx=e.clientX,sy=e.clientY;
+  function mv(me){f.size=Math.max(8,Math.min(80,os+Math.round((me.clientX-sx+me.clientY-sy)/3)));g('fSz').value=f.size;g('fSzN').value=f.size;render();}
+  function up(){document.removeEventListener('mousemove',mv);document.removeEventListener('mouseup',up);updateCode();}
+  document.addEventListener('mousemove',mv);document.addEventListener('mouseup',up);
+}
+
+function startResizeShape(e,fId){
+  e.preventDefault();e.stopPropagation();
+  const f=fields.find(x=>x.id===fId);const ow=f.w||40,oh=f.h||40,sx=e.clientX,sy=e.clientY;
+  function mv(me){
+    f.w=Math.max(4,Math.min(300,ow+(me.clientX-sx)));
+    f.h=Math.max(4,Math.min(300,oh+(me.clientY-sy)));
+    g('fW').value=f.w;g('fH').value=f.h;render();
+  }
+  function up(){document.removeEventListener('mousemove',mv);document.removeEventListener('mouseup',up);updateCode();}
+  document.addEventListener('mousemove',mv);document.addEventListener('mouseup',up);
+}
+
+g('watchScreen').addEventListener('click',e=>{
+  if(e.target.closest('.wf')||e.target.closest('.wshape'))return;
+  selId=null;render();g('nosel').style.display='';g('fieldEditor').style.display='none';
+});
+
+// ── TABS ──────────────────────────────────────────────────────────
+function switchTab(name,idx){
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('on',i===idx));
+  document.querySelectorAll('.tp').forEach(p=>p.classList.remove('on'));
+  g('tp-'+name).classList.add('on');
+  if(name==='code')updateCode();
+}
+
+// ── CODE GENERATION ───────────────────────────────────────────────
+function toGarmin(hex){
+  if(!hex||hex.length<4)return'0x000000';
+  hex=hex.replace('#','');if(hex.length===3)hex=hex.split('').map(c=>c+c).join('');
+  return'0x'+hex.toUpperCase();
+}
+
+function garminFont(font){
+  const cf=customFonts.find(f=>f.family===font);
+  if(cf)return`Rez.Fonts.${cf.name.replace(/[^a-zA-Z0-9]/g,'_')}`;
+  if(font.startsWith('INTER'))return'Rez.Fonts.interFont';
+  return'Graphics.'+font;
+}
+
+function garminAlign(align){
+  if(align==='left')return'Graphics.TEXT_JUSTIFY_LEFT';
+  if(align==='right')return'Graphics.TEXT_JUSTIFY_RIGHT';
+  return'Graphics.TEXT_JUSTIFY_CENTER';
+}
+
+function tplToMC(tpl){
+  if(!tpl)return'""';
+  const parts=[];let i=0;
+  while(i<tpl.length){
+    if(tpl[i]==='%'&&i+1<tpl.length){
+      const k=tpl[i+1];
+      if(k==='%'){parts.push({t:'l',v:'%'});i+=2;continue;}
+      const MAP={H:'t.hour.format("%02d")',h:'(t.hour%12==0?12:t.hour%12).format("%d")',M:'t.min.format("%02d")',S:'t.sec.format("%02d")',p:'t.hour<12?"AM":"PM"',d:'cal.day.format("%02d")',e:'cal.day.format("%d")',m:'cal.month.format("%02d")',b:'MONS[cal.month-1]',B:'MONL[cal.month-1]',y:'(cal.year%100).format("%02d")',Y:'cal.year.format("%d")',w:'DOWS[cal.day_of_week-1]',W:'DOWL[cal.day_of_week-1]',r:'act!=null&&act.currentHeartRate!=null?act.currentHeartRate.toString():"--"',a:'act!=null&&act.altitude!=null?act.altitude.format("%d")+"m":"--"',s:'act!=null&&act.steps!=null?act.steps.format("%d"):"--"',t:'stats.battery.format("%d")+"%"',c:'act!=null&&act.calories!=null?act.calories.format("%d"):"--"',k:'act!=null&&act.elapsedDistance!=null?(act.elapsedDistance/1000.0).format("%.1f")+"km":"--"',f:'act!=null&&act.floorsClimbed!=null?act.floorsClimbed.format("%d"):"--"',z:'act!=null&&act.stressScore!=null?act.stressScore.format("%d"):"--"'};
+      if(MAP[k]){parts.push({t:'e',v:MAP[k]});i+=2;}
+      else{parts.push({t:'l',v:'%'});i++;}
+    } else {let lit='';while(i<tpl.length&&tpl[i]!=='%'){lit+=tpl[i];i++;}if(lit)parts.push({t:'l',v:lit});}
+  }
+  return parts.map(p=>p.t==='l'?JSON.stringify(p.v):p.v).join(' + ');
+}
+
+function updateCode(){
+  const proj=(g('projectName').value.trim()||'MWF1');
+  const className=proj+'View';
+  const dev=g('deviceSel').value;
+  const textFields=fields.filter(f=>!SHAPES.includes(f.type));
+  const tplStr=textFields.filter(f=>f.type==='template').map(f=>f.template).join('');
+  const needsCal=textFields.some(f=>['date','weekday','month','year'].includes(f.type))||/%[dembBYywW]/.test(tplStr);
+  const needsAct=textFields.some(f=>['hr','altitude','steps','calories','distance','floors','stress'].includes(f.type))||/%[rasckfz]/.test(tplStr);
+  const needsBat=textFields.some(f=>f.type==='battery')||/%t/.test(tplStr);
+  const needsDOWS=textFields.some(f=>f.type==='weekday')||/%w/.test(tplStr);
+  const needsDOWL=/%W/.test(tplStr);
+  const needsMONS=textFields.some(f=>f.type==='month')||/%b/.test(tplStr);
+  const needsMONL=/%B/.test(tplStr);
+  const shapeFields=fields.filter(f=>SHAPES.includes(f.type));
+
+  let L=[];
+  L.push(`// ================================================================`);
+  L.push(`// Garmin Watch Face — ${proj} | ${dev}`);
+  L.push(`// ================================================================`);L.push(``);
+  L.push(`using Toybox.WatchUi as Ui;`);
+  L.push(`using Toybox.Graphics as Graphics;`);
+  L.push(`using Toybox.System as System;`);
+  if(needsAct)L.push(`using Toybox.Activity as Activity;`);
+  if(needsCal){L.push(`using Toybox.Time as Time;`);L.push(`using Toybox.Time.Gregorian as Gregorian;`);}
+  L.push(``);
+  L.push(`class ${className} extends Ui.WatchFace {`);L.push(``);
+  L.push(`    // ── FARBEN ─────────────────────────────────────`);
+  textFields.forEach(f=>{const id='F'+f.id;L.push(`    var ${id}_COLOR = ${toGarmin(f.color)};`);if(f.outlineColor)L.push(`    var ${id}_OUTLINE = ${toGarmin(f.outlineColor)};`);});
+  L.push(``);
+  L.push(`    // ── POSITIONEN & SCHRIFTEN ─────────────────────`);
+  textFields.forEach(f=>{const id='F'+f.id;L.push(`    var ${id}_X=${f.x}; var ${id}_Y=${f.y}; var ${id}_FONT=${garminFont(f.font)};`);});
+  shapeFields.forEach(f=>{const id='F'+f.id;L.push(`    var ${id}_X=${f.x}; var ${id}_Y=${f.y}; var ${id}_W=${f.w||40}; var ${id}_H=${f.h||40};`);});
+  L.push(``);
+  L.push(`    function initialize() { WatchFace.initialize(); }`);
+  L.push(`    function onLayout(dc) {}`);L.push(``);
+  L.push(`    function onUpdate(dc) {`);
+  L.push(`        var t = System.getClockTime();`);
+  if(needsAct)L.push(`        var act = Activity.getActivityInfo();`);
+  if(needsBat)L.push(`        var stats = System.getSystemStats();`);
+  if(needsCal)L.push(`        var cal = Gregorian.info(Time.now(), Time.FORMAT_SHORT);`);
+  if(needsDOWS)L.push(`        var DOWS = ["So","Mo","Di","Mi","Do","Fr","Sa"];`);
+  if(needsDOWL)L.push(`        var DOWL = ["Sonntag","Montag","Dienstag","Mittwoch","Donnerstag","Freitag","Samstag"];`);
+  if(needsMONS)L.push(`        var MONS = ["Jan","Feb","Mrz","Apr","Mai","Jun","Jul","Aug","Sep","Okt","Nov","Dez"];`);
+  if(needsMONL)L.push(`        var MONL = ["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];`);
+  L.push(``);
+  if(bgImageUrl){L.push(`        var bgBmp = Ui.loadResource(Rez.Drawables.background);`);L.push(`        dc.drawBitmap(0, 0, bgBmp);`);}
+  else{L.push(`        dc.setColor(${toGarmin(g('bgHex').value)}, Graphics.COLOR_BLACK);`);L.push(`        dc.clear();`);}
+  L.push(``);
+
+  // shapes first (drawn below text)
+  shapeFields.forEach(f=>{
+    const id='F'+f.id;
+    L.push(`        // ── ${LABELS[f.type]} ──`);
+    L.push(`        dc.setColor(${toGarmin(f.fillColor)}, Graphics.COLOR_TRANSPARENT);`);
+    if(f.type==='rect')L.push(`        dc.fillRectangle(${id}_X - ${id}_W/2, ${id}_Y - ${id}_H/2, ${id}_W, ${id}_H);`);
+    if(f.type==='circle')L.push(`        dc.fillCircle(${id}_X, ${id}_Y, ${id}_W/2);`);
+    if(f.strokeColor){
+      L.push(`        dc.setColor(${toGarmin(f.strokeColor)}, Graphics.COLOR_TRANSPARENT);`);
+      if(f.type==='rect')L.push(`        dc.drawRectangle(${id}_X - ${id}_W/2, ${id}_Y - ${id}_H/2, ${id}_W, ${id}_H);`);
+      if(f.type==='circle')L.push(`        dc.drawCircle(${id}_X, ${id}_Y, ${id}_W/2);`);
+    }
+    L.push(``);
+  });
+
+  // text fields
+  textFields.forEach(f=>{
+    const id='F'+f.id;
+    let valExpr='';
+    if(f.type==='template'){valExpr=tplToMC(f.template);}
+    else{
+      switch(f.type){
+        case 'time':valExpr=`t.hour.format("%02d")+":"+t.min.format("%02d")`;break;
+        case 'seconds':valExpr=`t.sec.format("%02d")`;break;
+        case 'weekday':valExpr=`DOWS[cal.day_of_week-1]`;break;
+        case 'date':valExpr=`cal.day.format("%d")+"."+cal.month.format("%02d")`;break;
+        case 'month':valExpr=`MONS[cal.month-1]`;break;
+        case 'year':valExpr=`cal.year.format("%d")`;break;
+        case 'hr':valExpr=`act!=null&&act.currentHeartRate!=null?act.currentHeartRate.toString():"--"`;break;
+        case 'altitude':valExpr=`act!=null&&act.altitude!=null?act.altitude.format("%d")+"m":"--"`;break;
+        case 'steps':valExpr=`act!=null&&act.steps!=null?act.steps.format("%d"):"--"`;break;
+        case 'battery':valExpr=`stats.battery.format("%d")+"%"`;break;
+        case 'calories':valExpr=`act!=null&&act.calories!=null?act.calories.format("%d"):"--"`;break;
+        case 'distance':valExpr=`act!=null&&act.elapsedDistance!=null?(act.elapsedDistance/1000.0).format("%.1f")+"km":"--"`;break;
+        case 'floors':valExpr=`act!=null&&act.floorsClimbed!=null?act.floorsClimbed.format("%d"):"--"`;break;
+        case 'stress':valExpr=`act!=null&&act.stressScore!=null?act.stressScore.format("%d"):"--"`;break;
+        default:valExpr=`"--"`;
+      }
+    }
+    const align=garminAlign(f.align||'center');
+    const hasIcon=f.icon&&f.icon!==''&&f.iconPos!=='none';
+    L.push(`        // ── ${LABELS[f.type]||f.type} ──`);
+    if(f.outlineColor&&f.outlineColor.length===7){
+      const ow=f.outlineWidth||1;
+      L.push(`        // Outline (${ow}px)`);
+      L.push(`        dc.setColor(${id}_OUTLINE, Graphics.COLOR_TRANSPARENT);`);
+      for(let dx=-ow;dx<=ow;dx++){for(let dy=-ow;dy<=ow;dy++){if(dx===0&&dy===0)continue;L.push(`        dc.drawText(${id}_X+${dx}, ${id}_Y+${dy}, ${id}_FONT, ${valExpr}, ${align});`);}}
+    }
+    if(hasIcon){
+      L.push(`        dc.setColor(${toGarmin(f.iconLinked?f.color:f.iconColor)}, Graphics.COLOR_TRANSPARENT);`);
+      const offX=f.iconPos==='left'?`${id}_X - ${f.size}`:`${id}_X + ${f.size}/2 + 4`;
+      L.push(`        dc.drawText(${offX}, ${id}_Y, Graphics.FONT_SMALL, "${f.icon}", Graphics.TEXT_JUSTIFY_CENTER);`);
+    }
+    L.push(`        dc.setColor(${id}_COLOR, Graphics.COLOR_TRANSPARENT);`);
+    L.push(`        dc.drawText(${id}_X, ${id}_Y, ${id}_FONT, ${valExpr}, ${align});`);
+    L.push(``);
+  });
+  L.push(`    }`);L.push(`}`);
+  g('codeOut').textContent=L.join('\n');
+}
+
+function copyCode(){navigator.clipboard.writeText(g('codeOut').textContent).then(()=>{const b=g('cpBtn');b.textContent='Kopiert ✓';setTimeout(()=>{b.textContent='Kopieren'},2000);});}
+function dlCode(){const proj=(g('projectName').value.trim()||'MWF1');const blob=new Blob([g('codeOut').textContent],{type:'text/plain'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=proj+'View.mc';a.click();}
+
+// init
+render();updateCode();updateFontList();
+</script>
+</body>
+</html>
