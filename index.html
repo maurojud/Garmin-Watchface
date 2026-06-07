@@ -406,6 +406,10 @@ input[type=range]{flex:1;accent-color:#555;height:3px}
         <input type="number" id="fX" min="0" max="420" oninput="upd('x',+this.value)" style="flex:1">
         <input type="number" id="fY" min="0" max="420" oninput="upd('y',+this.value)" style="flex:1">
       </div>
+      <div class="row" style="margin-top:2px">
+        <button class="btn sm" onclick="centerField('h')" style="flex:1">↔ H-Zentrum</button>
+        <button class="btn sm" onclick="centerField('v')" style="flex:1">↕ V-Zentrum</button>
+      </div>
       <button class="btn del" onclick="deleteField()">Feld löschen</button>
     </div>
   </div>
@@ -614,7 +618,7 @@ function newDesign(){
   currentDesignId=null;
   g('designName').value='Mein Design';
   fields=[
-    {id:0,type:'time',template:'',x:120,y:100,size:36,color:'#FFFFFF',iconColor:'#888',iconLinked:false,font:'INTER_BOLD',icon:'',iconPos:'none',iconSize:16,customIcon:null,align:'center',outlineColor:'',outlineWidth:1},
+    {id:0,type:'time',template:'',x:120,y:100,size:36,color:'#FFFFFF',iconColor:'#FFFFFF',iconLinked:false,font:'INTER_BOLD',icon:'',iconPos:'none',iconSize:16,customIcon:null,align:'center',outlineColor:'',outlineWidth:1},
     {id:1,type:'template',template:'%w %e.%m.%Y',x:120,y:142,size:13,color:'#BBBBBB',iconColor:'#888',iconLinked:false,font:'INTER_REG',icon:'',iconPos:'none',iconSize:12,customIcon:null,align:'center',outlineColor:'',outlineWidth:1},
     {id:2,type:'hr',template:'',x:70,y:192,size:13,color:'#FF4444',iconColor:'#FF4444',iconLinked:true,font:'INTER_REG',icon:'♥',iconPos:'left',iconSize:12,customIcon:null,align:'center',outlineColor:'',outlineWidth:1},
     {id:3,type:'altitude',template:'',x:188,y:192,size:13,color:'#44AAFF',iconColor:'#44AAFF',iconLinked:true,font:'INTER_REG',icon:'▲',iconPos:'left',iconSize:11,customIcon:null,align:'center',outlineColor:'',outlineWidth:1},
@@ -754,8 +758,8 @@ const SHAPES=['rect','circle'];
 const SAMPLE_VALS={time:'14:23',seconds:'07',weekday:'So',date:'07.06',month:'Juni',year:'2026',hr:'72',altitude:'437',steps:'6284',battery:'85',calories:'1840',distance:'8.4',floors:'12',stress:'34'};
 
 let fields=[
-  {id:0,type:'time',template:'',x:120,y:100,size:36,color:'#FFFFFF',iconColor:'#888',iconLinked:false,font:'INTER_BOLD',icon:'',iconPos:'none',iconSize:16,customIcon:null,align:'center',outlineColor:'',outlineWidth:1},
-  {id:1,type:'template',template:'%w %e.%m.%Y',x:120,y:142,size:13,color:'#BBBBBB',iconColor:'#888',iconLinked:false,font:'INTER_REG',icon:'',iconPos:'none',iconSize:12,customIcon:null,align:'center',outlineColor:'',outlineWidth:1},
+  {id:0,type:'time',template:'',x:120,y:100,size:36,color:'#FFFFFF',iconColor:'#FFFFFF',iconLinked:false,font:'INTER_BOLD',icon:'',iconPos:'none',iconSize:16,customIcon:null,align:'center',outlineColor:'',outlineWidth:1},
+  {id:1,type:'template',template:'%w %e.%m.%Y',x:120,y:142,size:13,color:'#BBBBBB',iconColor:'#FFFFFF',iconLinked:false,font:'INTER_REG',icon:'',iconPos:'none',iconSize:12,customIcon:null,align:'center',outlineColor:'',outlineWidth:1},
   {id:2,type:'hr',template:'',x:70,y:192,size:13,color:'#FF4444',iconColor:'#FF4444',iconLinked:true,font:'INTER_REG',icon:'♥',iconPos:'left',iconSize:12,customIcon:null,align:'center',outlineColor:'',outlineWidth:1},
   {id:3,type:'altitude',template:'',x:188,y:192,size:13,color:'#44AAFF',iconColor:'#44AAFF',iconLinked:true,font:'INTER_REG',icon:'▲',iconPos:'left',iconSize:11,customIcon:null,align:'center',outlineColor:'',outlineWidth:1},
 ];
@@ -846,22 +850,34 @@ function renderShape(c,f){
 function mkIcon(f,color){
   const ic=document.createElement('span');
   ic.style.fontSize=f.iconSize+'px';ic.style.color=color;ic.style.flexShrink='0';
-  if(f.customIcon&&f.customIcon.startsWith('data:image/svg')){
-    // SVG with color replacement
-    const parser=new DOMParser();
-    const svgStr=atob(f.customIcon.split(',')[1]);
-    const doc=parser.parseFromString(svgStr,'image/svg+xml');
-    const svg=doc.documentElement;
-    svg.querySelectorAll('[fill]:not([fill="none"])').forEach(el=>el.setAttribute('fill',color));
-    svg.querySelectorAll('[stroke]:not([stroke="none"])').forEach(el=>el.setAttribute('stroke',color));
-    svg.style.cssText=`width:${f.iconSize}px;height:${f.iconSize}px;vertical-align:middle`;
-    const blob=new Blob([svg.outerHTML],{type:'image/svg+xml'});
-    const url=URL.createObjectURL(blob);
-    const img=document.createElement('img');img.src=url;img.style.cssText=`width:${f.iconSize}px;height:${f.iconSize}px;vertical-align:middle`;
-    ic.appendChild(img);
-  } else if(f.customIcon){
-    const img=document.createElement('img');img.src=f.customIcon;img.style.cssText=`width:${f.iconSize}px;height:${f.iconSize}px;vertical-align:middle`;
-    ic.appendChild(img);
+  if(f.customIcon){
+    if(f.customIcon.includes('image/svg')||f.customIcon.includes('<svg')){
+      // SVG: replace fill/stroke with chosen color
+      try{
+        const svgStr=atob(f.customIcon.split(',')[1]);
+        const parser=new DOMParser();
+        const doc=parser.parseFromString(svgStr,'image/svg+xml');
+        const svg=doc.documentElement;
+        svg.querySelectorAll('[fill]').forEach(el=>{if(el.getAttribute('fill')!=='none')el.setAttribute('fill',color);});
+        svg.querySelectorAll('[stroke]').forEach(el=>{if(el.getAttribute('stroke')!=='none')el.setAttribute('stroke',color);});
+        // also set on root svg if no fill children
+        if(!svg.querySelector('[fill]'))svg.setAttribute('fill',color);
+        svg.setAttribute('width',f.iconSize);svg.setAttribute('height',f.iconSize);
+        svg.style.cssText=`width:${f.iconSize}px;height:${f.iconSize}px;vertical-align:middle;overflow:visible`;
+        const blob=new Blob([svg.outerHTML],{type:'image/svg+xml'});
+        const url=URL.createObjectURL(blob);
+        const img=document.createElement('img');
+        img.src=url;img.style.cssText=`width:${f.iconSize}px;height:${f.iconSize}px;vertical-align:middle`;
+        ic.appendChild(img);
+      }catch(e){
+        const img=document.createElement('img');img.src=f.customIcon;img.style.cssText=`width:${f.iconSize}px;height:${f.iconSize}px;vertical-align:middle`;
+        ic.appendChild(img);
+      }
+    } else {
+      // PNG: show as-is, color can't be changed
+      const img=document.createElement('img');img.src=f.customIcon;img.style.cssText=`width:${f.iconSize}px;height:${f.iconSize}px;vertical-align:middle`;
+      ic.appendChild(img);
+    }
   } else {ic.textContent=f.icon;}
   return ic;
 }
@@ -928,30 +944,109 @@ function setCol(ti,si,ni,hex){
 
 function renderIconGrid(f){
   const grid=g('iconGrid');grid.innerHTML='';
+  // none
   const nb=document.createElement('button');nb.className='ib'+(f.icon===''?' on':'');nb.textContent='∅';
-  nb.onclick=()=>{upd('icon','');upd('iconPos','none');renderIconGrid(fields.find(x=>x.id===selId));};
+  nb.onclick=()=>{upd('icon','');upd('customIcon',null);upd('iconPos','none');renderIconGrid(fields.find(x=>x.id===selId));};
   grid.appendChild(nb);
+  // built-in
   BUILTIN_ICONS.forEach(ic=>{
-    const b=document.createElement('button');b.className='ib'+(f.icon===ic?' on':'');b.textContent=ic;
+    const b=document.createElement('button');b.className='ib'+(f.icon===ic&&!f.customIcon?' on':'');b.textContent=ic;
     b.onclick=()=>{upd('icon',ic);upd('customIcon',null);if(fields.find(x=>x.id===selId).iconPos==='none')upd('iconPos','left');renderIconGrid(fields.find(x=>x.id===selId));};
     grid.appendChild(b);
   });
+  // currently active custom icon
+  if(f.customIcon){
+    const b=document.createElement('button');
+    b.className='ib on';b.title='Aktives eigenes Symbol';b.style.cssText='position:relative;border-color:#555';
+    const img=document.createElement('img');
+    img.src=f.customIcon;img.style.cssText='width:16px;height:16px;vertical-align:middle;filter:invert(1)';
+    b.appendChild(img);
+    const xbtn=document.createElement('span');
+    xbtn.textContent='×';xbtn.style.cssText='position:absolute;top:-3px;right:-2px;font-size:8px;color:#a55;line-height:1;cursor:pointer';
+    xbtn.onclick=e=>{e.stopPropagation();upd('customIcon',null);upd('icon','');upd('iconPos','none');renderIconGrid(fields.find(x=>x.id===selId));};
+    b.appendChild(xbtn);
+    grid.appendChild(b);
+  }
+  // saved icon library (localStorage)
+  if(savedIcons.length>0){
+    const sep=document.createElement('div');sep.style.cssText='grid-column:1/-1;font-size:8px;color:#333;letter-spacing:.1em;text-transform:uppercase;padding:4px 0 2px;border-top:1px solid #1a1a1a;margin-top:2px';sep.textContent='Bibliothek';grid.appendChild(sep);
+    savedIcons.forEach(si=>{
+      const b=document.createElement('button');
+      b.className='ib'+(f.customIcon===si.dataUrl?' on':'');
+      b.title=si.name;b.style.cssText='position:relative';
+      const img=document.createElement('img');img.src=si.dataUrl;img.style.cssText='width:16px;height:16px;vertical-align:middle;filter:invert(1)';
+      b.appendChild(img);
+      const xbtn=document.createElement('span');
+      xbtn.textContent='×';xbtn.style.cssText='position:absolute;top:-3px;right:-2px;font-size:8px;color:#633;line-height:1;cursor:pointer';
+      xbtn.onclick=e=>{e.stopPropagation();deleteSavedIcon(si.id);renderIconGrid(fields.find(x=>x.id===selId));};
+      b.appendChild(xbtn);
+      b.onclick=()=>{
+        const cf=fields.find(x=>x.id===selId);if(!cf)return;
+        cf.customIcon=si.dataUrl;cf.icon='CUSTOM';
+        if(cf.iconPos==='none')cf.iconPos='left';
+        if(!cf.iconColor||cf.iconColor==='#888')cf.iconColor='#FFFFFF';
+        render();selectField(selId);updateCode();
+      };
+      grid.appendChild(b);
+    });
+  }
 }
 
 function loadCustomIcon(inp){
   const file=inp.files[0];if(!file)return;
+  const fname=file.name.replace(/\.[^.]+$/,'');
+  inp.value='';
   const r=new FileReader();
   r.onload=e=>{
     if(selId===null)return;
+    const dataUrl=e.target.result;
     const f=fields.find(x=>x.id===selId);
-    f.customIcon=e.target.result;f.icon='★';
+    f.customIcon=dataUrl;f.icon='CUSTOM';
+    if(!f.iconColor||f.iconColor==='#888'||f.iconColor==='#1d1d1b'||f.iconColor==='#000000'){
+      f.iconColor='#FFFFFF';f.iconLinked=false;
+      setCol('fIco','fIcoSw','fIcoNat','#FFFFFF');
+      g('linkBtn').textContent='🔓';
+    }
     if(f.iconPos==='none')f.iconPos='left';
+    // auto-save to library if not already there
+    if(!savedIcons.find(i=>i.dataUrl===dataUrl)){
+      saveIconToLibrary(dataUrl,fname);
+    }
     render();selectField(selId);updateCode();
   };
   r.readAsDataURL(file);
 }
 
 function segOn(btn){btn.parentElement.querySelectorAll('button').forEach(b=>b.classList.remove('on'));btn.classList.add('on');}
+
+// ── CENTER FIELD ─────────────────────────────────────────────────
+function centerField(axis){
+  if(selId===null)return;
+  const f=fields.find(x=>x.id===selId);if(!f)return;
+  if(axis==='h'){f.x=120;g('fX').value=120;}
+  if(axis==='v'){f.y=120;g('fY').value=120;}
+  render();updateCode();
+}
+
+// ── SAVED CUSTOM ICONS ───────────────────────────────────────────
+let savedIcons=JSON.parse(localStorage.getItem('gwd_saved_icons')||'[]');
+
+function saveIconToLibrary(dataUrl,name){
+  const id='icon_'+Date.now();
+  savedIcons.push({id,name,dataUrl});
+  localStorage.setItem('gwd_saved_icons',JSON.stringify(savedIcons));
+  renderSavedIcons();
+}
+
+function deleteSavedIcon(id){
+  savedIcons=savedIcons.filter(i=>i.id!==id);
+  localStorage.setItem('gwd_saved_icons',JSON.stringify(savedIcons));
+  renderSavedIcons();
+}
+
+function renderSavedIcons(){
+  // called from renderIconGrid — shows saved icons after builtin
+}
 function linkIconColor(){if(selId===null)return;const f=fields.find(x=>x.id===selId);f.iconLinked=!f.iconLinked;g('linkBtn').textContent=f.iconLinked?'🔗':'🔓';if(f.iconLinked)f.iconColor=f.color;render();updateCode();}
 
 function upd(prop,val){if(selId===null)return;const f=fields.find(x=>x.id===selId);if(!f)return;f[prop]=val;render();updateCode();}
@@ -973,7 +1068,7 @@ function addField(){
   if(isShape){
     fields.push({...base,w:50,h:type==='circle'?50:30,fillColor:'rgba(255,255,255,0.1)',strokeColor:'#FFFFFF',strokeWidth:1,opacity:80});
   } else {
-    fields.push({...base,template:type==='template'?'%w %e.%m':''  ,size:14,color:DFLT_COL[type]||'#FFFFFF',iconColor:DFLT_COL[type]||'#FFFFFF',iconLinked:true,font:'INTER_REG',icon:ic,iconPos:ic?'left':'none',iconSize:12,customIcon:null,outlineColor:'',outlineWidth:1});
+    const icCol=ic?'#FFFFFF':(DFLT_COL[type]||'#FFFFFF');fields.push({...base,template:type==='template'?'%w %e.%m':'',size:14,color:DFLT_COL[type]||'#FFFFFF',iconColor:icCol,iconLinked:!ic,font:'INTER_REG',icon:ic,iconPos:ic?'left':'none',iconSize:12,customIcon:null,outlineColor:'',outlineWidth:1});
   }
   render();updateCode();
 }
