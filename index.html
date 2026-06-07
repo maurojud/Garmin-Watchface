@@ -597,7 +597,9 @@ async function loadDesign(id){
     g('watchBg').style.backgroundSize='cover';
     g('bgFn').textContent='Bild geladen';
   }
-  fields=data.fields||[];
+  // migrate old font names
+  const fontMigration={'INTER_THIN':'FONT_SMALL','INTER_REG':'FONT_MEDIUM','INTER_BOLD':'FONT_NUMBER_HOT'};
+  fields=(data.fields||[]).map(f=>({...f,font:fontMigration[f.font]||f.font}));
   nextId=fields.length?Math.max(...fields.map(f=>f.id))+1:0;
   selId=null;g('nosel').style.display='';g('fieldEditor').style.display='none';
   render();updateCode();
@@ -1223,7 +1225,7 @@ function updateCode(){
   if(needsMONS)L.push(`        var MONS = ["Jan","Feb","Mrz","Apr","Mai","Jun","Jul","Aug","Sep","Okt","Nov","Dez"];`);
   if(needsMONL)L.push(`        var MONL = ["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];`);
   L.push(``);
-  if(bgImageUrl){L.push(`        var bgBmp = Ui.loadResource(Rez.Drawables.background);`);L.push(`        dc.drawBitmap(0, 0, bgBmp);`);}
+  if(bgImageUrl){L.push(`        dc.drawBitmap(0, 0, mBgBmp);`);}
   else{L.push(`        dc.setColor(${toGarmin(g('bgHex').value)}, Graphics.COLOR_BLACK);`);L.push(`        dc.clear();`);}
   L.push(``);
 
@@ -1288,7 +1290,7 @@ function updateCode(){
     L.push(``);
   });
   L.push(`    }`);L.push(`}`);
-  g('codeOut').textContent=L.join('\n');
+  const co=g('codeOut');if(co)co.textContent=L.join('\n');
 }
 
 function copyCode(){navigator.clipboard.writeText(g('codeOut').textContent).then(()=>{const b=g('cpBtn');b.textContent='Kopiert ✓';setTimeout(()=>{b.textContent='Kopieren'},2000);});}
