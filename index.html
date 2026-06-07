@@ -85,8 +85,6 @@ input[type=range]{flex:1;accent-color:#555;height:3px}
 .wf:hover{border-color:rgba(255,255,255,.18)}
 .wf.sel{border-color:rgba(255,200,0,.75);background:rgba(255,200,0,.04)}
 .wf .wft{white-space:pre}
-.rh{position:absolute;bottom:-5px;right:-5px;width:9px;height:9px;border-radius:2px;background:rgba(255,200,0,.9);cursor:se-resize;display:none}
-.wf.sel .rh{display:block}
 /* shape fields */
 .wshape{position:absolute;cursor:move;border:1px dashed transparent;transform:translate(-50%,-50%)}
 .wshape:hover{border-color:rgba(255,255,255,.18)!important}
@@ -348,11 +346,6 @@ input[type=range]{flex:1;accent-color:#555;height:3px}
           <optgroup label="Eigene Schriften" id="customFontGroup"></optgroup>
         </select>
 
-        <div class="lbl" style="margin-top:4px">Schriftgrösse</div>
-        <div class="row">
-          <input type="range" id="fSz" min="8" max="80" oninput="g('fSzN').value=this.value;upd('size',+this.value)" style="flex:1">
-          <input type="number" id="fSzN" min="8" max="80" style="width:44px" oninput="g('fSz').value=this.value;upd('size',+this.value)">
-        </div>
 
         <div class="lbl">Textfarbe</div>
         <div class="row">
@@ -395,8 +388,8 @@ input[type=range]{flex:1;accent-color:#555;height:3px}
           </div>
           <div class="lbl" style="margin-top:4px">Symbolgrösse</div>
           <div class="row">
-            <input type="range" id="fIcoSz" min="8" max="60" oninput="g('fIcoSzN').value=this.value;upd('iconSize',+this.value)" style="flex:1">
-            <input type="number" id="fIcoSzN" min="8" max="60" style="width:44px" oninput="g('fIcoSz').value=this.value;upd('iconSize',+this.value)">
+            <input type="range" id="fIcoSz" min="8" max="60" step="2" oninput="g('fIcoSzN').value=this.value;upd('iconSize',+this.value);render()" style="flex:1">
+            <input type="number" id="fIcoSzN" min="8" max="60" style="width:44px" oninput="g('fIcoSz').value=this.value;upd('iconSize',+this.value);render()">
           </div>
         </div>
       </div>
@@ -815,15 +808,14 @@ function render(){
     el.style.left=f.x+'px';el.style.top=f.y+'px';
     el.style.fontFamily=cssFontFamily(f.font);
     el.style.fontWeight=cssFontWeight(f.font);
-    el.style.fontSize=f.size+'px';el.style.color=f.color;
+    el.style.fontSize=(FONT_SIZES[f.font]||f.size)+'px';el.style.color=f.color;
     applyOutlineStyle(el,f);
     const iconColor=f.iconLinked?f.color:f.iconColor;
     if(f.iconPos==='left'&&f.icon){const ic=mkIcon(f,iconColor);if(ic)el.appendChild(ic);}
     const tx=document.createElement('span');tx.className='wft';tx.textContent=getSample(f);
     el.appendChild(tx);
     if(f.iconPos==='right'&&f.icon){const ic=mkIcon(f,iconColor);if(ic)el.appendChild(ic);}
-    const rh=document.createElement('div');rh.className='rh';rh.dataset.resize='1';el.appendChild(rh);
-    el.addEventListener('mousedown',e=>{if(e.target.dataset.resize){startResize(e,f.id);return;}selectField(f.id);startDrag(e,f.id);});
+    el.addEventListener('mousedown',e=>{selectField(f.id);startDrag(e,f.id);});
     el.addEventListener('click',e=>{e.stopPropagation();selectField(f.id);});
     c.appendChild(el);
   });
@@ -927,7 +919,7 @@ function selectField(id){
     if(isTpl){g('fTpl').value=f.template||'';buildTplVarBtns();updateTplPreview();setAlignSeg('alignSeg',f.align||'center');}
     else {g('fType').value=f.type;setAlignSeg('alignSeg2',f.align||'center');}
     g('fFont').value=f.font;
-    g('fSz').value=f.size;g('fSzN').value=f.size;
+    updateFontSizeLabel(f.font);
     setCol('fCol','fColSw','fColNat',f.color);
     setCol('fIco','fIcoSw','fIcoNat',f.iconLinked?f.color:f.iconColor);
     setCol('fOutline','fOutlineSw','fOutlineNat',f.outlineColor||'');
@@ -1027,6 +1019,20 @@ function loadCustomIcon(inp){
   r.readAsDataURL(file);
 }
 
+function updFont(font){
+  const sz=FONT_SIZES[font]||20;
+  upd('font',font);
+  upd('size',sz);
+  const label=g('fontSizeLabel');
+  if(label) label.textContent=sz+'px (ca.)';
+}
+
+function updateFontSizeLabel(font){
+  const sz=FONT_SIZES[font]||20;
+  const label=g('fontSizeLabel');
+  if(label) label.textContent=sz+'px (ca.)';
+}
+
 function segOn(btn){btn.parentElement.querySelectorAll('button').forEach(b=>b.classList.remove('on'));btn.classList.add('on');}
 
 // ── CENTER FIELD ─────────────────────────────────────────────────
@@ -1100,13 +1106,7 @@ function startDrag(e,fId){
   document.addEventListener('mousemove',mv);document.addEventListener('mouseup',up);
 }
 
-function startResize(e,fId){
-  e.preventDefault();e.stopPropagation();
-  const f=fields.find(x=>x.id===fId);const os=f.size,sx=e.clientX,sy=e.clientY;
-  function mv(me){f.size=Math.max(8,Math.min(80,os+Math.round((me.clientX-sx+me.clientY-sy)/3)));g('fSz').value=f.size;g('fSzN').value=f.size;render();}
-  function up(){document.removeEventListener('mousemove',mv);document.removeEventListener('mouseup',up);updateCode();}
-  document.addEventListener('mousemove',mv);document.addEventListener('mouseup',up);
-}
+
 
 function startResizeShape(e,fId){
   e.preventDefault();e.stopPropagation();
