@@ -1354,7 +1354,7 @@ async function dlAssets(){
   let xml='<?xml version="1.0" encoding="UTF-8"?>\n<resources>\n';
   if(hasBg) xml+='  <bitmap id="background" filename="background.png"/>\n';
   xml+='  <bitmap id="LauncherIcon" filename="launcher_icon.png"/>\n';
-  iconEntries.forEach(e=>{xml+=\`  <bitmap id="${e.id}" filename="${e.file}"/>\n\`;});
+  iconEntries.forEach(e=>{xml+='  <bitmap id="'+e.id+'" filename="'+e.file+'"/>\n';});
   xml+='</resources>';
   drawables.file('drawables.xml', xml);
 
@@ -1364,19 +1364,17 @@ async function dlAssets(){
   drawables.file('launcher_icon.png', canvas.toDataURL('image/png').split(',')[1], {base64:true});
 
   // README
-  const readme=\`Garmin Watch Face Assets
-========================
-1. Kopiere alle Dateien aus "resources/drawables/" in:
-   .../MWF1/resources/drawables/
-
-2. Falls du ein Hintergrundbild hast:
-   Speichere es als "background.png" (${DEVICE_RES[g('deviceSel').value]||416}x${DEVICE_RES[g('deviceSel').value]||416}px) im gleichen Ordner.
-
-3. Die drawables.xml ist bereits fertig generiert.
-
-4. Symbole wurden in der richtigen Farbe exportiert.
-
-Gerät: \${g('deviceSel').value} (\${DEVICE_RES[g('deviceSel').value]||416}x\${DEVICE_RES[g('deviceSel').value]||416}px)\`;
+  const devRes=DEVICE_RES[g('deviceSel').value]||416;
+  const devName=g('deviceSel').value;
+  const readme='Garmin Watch Face Assets\n'
+    +'========================\n'
+    +'1. Kopiere alle Dateien aus resources/drawables/ in:\n'
+    +'   .../MWF1/resources/drawables/\n\n'
+    +'2. Falls du ein Hintergrundbild hast:\n'
+    +'   Speichere es als background.png ('+devRes+'x'+devRes+'px) im gleichen Ordner.\n\n'
+    +'3. Die drawables.xml ist bereits fertig generiert.\n\n'
+    +'4. Symbole wurden in der richtigen Farbe exportiert.\n\n'
+    +'Geraet: '+devName+' ('+devRes+'x'+devRes+'px)';
   zip.file('README.txt', readme);
 
   // also update MC code to use bitmap icons where applicable
