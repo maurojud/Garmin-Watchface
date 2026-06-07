@@ -750,6 +750,9 @@ function buildTplVarBtns(){
 }
 
 // ── FIELD DATA ───────────────────────────────────────────────────
+const DEVICE_RES={fr265:416,fr265s:360,fr255:260,fr745:240,fr955:260,fenix7:280,fenix7s:240,fenix6:260,epix2:416,venu2:390};
+function getScale(){return(DEVICE_RES[g('deviceSel').value]||416)/240;}
+
 const LABELS={template:'Freier Text',time:'Uhrzeit',seconds:'Sekunden',weekday:'Wochentag',date:'Datum',month:'Monat',year:'Jahr',hr:'Herzfrequenz',altitude:'Höhenmeter',steps:'Schritte',battery:'Batterie',calories:'Kalorien',distance:'Distanz',floors:'Stockwerke',stress:'Stress',rect:'Rechteck',circle:'Kreis'};
 const DFLT_COL={template:'#FFFFFF',time:'#FFFFFF',seconds:'#777',weekday:'#BBBBBB',date:'#FFFFFF',month:'#999',year:'#666',hr:'#FF4444',altitude:'#44AAFF',steps:'#88EE88',battery:'#FFDD44',calories:'#FF8844',distance:'#44DDAA',floors:'#AA88FF',stress:'#FF6688',rect:'#FFFFFF',circle:'#FFFFFF'};
 const ICONS_DEF={hr:'♥',altitude:'▲',battery:'⚡',steps:'◎',calories:'🔥',distance:'⬤',floors:'⬆',stress:'◈'};
@@ -1188,8 +1191,8 @@ function updateCode(){
   textFields.forEach(f=>{const id='F'+f.id;L.push(`    var ${id}_COLOR = ${toGarmin(f.color)};`);if(f.outlineColor)L.push(`    var ${id}_OUTLINE = ${toGarmin(f.outlineColor)};`);});
   L.push(``);
   L.push(`    // ── POSITIONEN & SCHRIFTEN ─────────────────────`);
-  textFields.forEach(f=>{const id='F'+f.id;L.push(`    var ${id}_X=${f.x}; var ${id}_Y=${f.y}; var ${id}_FONT=${garminFont(f.font)};`);});
-  shapeFields.forEach(f=>{const id='F'+f.id;L.push(`    var ${id}_X=${f.x}; var ${id}_Y=${f.y}; var ${id}_W=${f.w||40}; var ${id}_H=${f.h||40};`);});
+  const SCALE=getScale();textFields.forEach(f=>{const id='F'+f.id;const sx=Math.round(f.x*SCALE),sy=Math.round(f.y*SCALE);L.push(`    var ${id}_X=${sx}; var ${id}_Y=${sy}; var ${id}_FONT=${garminFont(f.font)};`);});
+  shapeFields.forEach(f=>{const id='F'+f.id;const ssx=Math.round(f.x*SCALE),ssy=Math.round(f.y*SCALE),ssw=Math.round((f.w||40)*SCALE),ssh=Math.round((f.h||40)*SCALE);L.push(`    var ${id}_X=${ssx}; var ${id}_Y=${ssy}; var ${id}_W=${ssw}; var ${id}_H=${ssh};`);});
   L.push(``);
   L.push(`    function initialize() { WatchFace.initialize(); }`);
   L.push(`    function onLayout(dc) {}`);L.push(``);
@@ -1248,6 +1251,8 @@ function updateCode(){
     }
     const align=garminAlign(f.align||'center');
     const hasIcon=f.icon&&f.icon!==''&&f.iconPos!=='none';
+    const iconId='icon_'+id;
+    const scaledSize=Math.round(f.iconSize*SCALE);
     L.push(`        // ── ${LABELS[f.type]||f.type} ──`);
     if(f.outlineColor&&f.outlineColor.length===7){
       const ow=f.outlineWidth||1;
@@ -1256,9 +1261,11 @@ function updateCode(){
       for(let dx=-ow;dx<=ow;dx++){for(let dy=-ow;dy<=ow;dy++){if(dx===0&&dy===0)continue;L.push(`        dc.drawText(${id}_X+${dx}, ${id}_Y+${dy}, ${id}_FONT, ${valExpr}, ${align});`);}}
     }
     if(hasIcon){
-      L.push(`        dc.setColor(${toGarmin(f.iconLinked?f.color:f.iconColor)}, Graphics.COLOR_TRANSPARENT);`);
-      const offX=f.iconPos==='left'?`${id}_X - ${f.size}`:`${id}_X + ${f.size}/2 + 4`;
-      L.push(`        dc.drawText(${offX}, ${id}_Y, Graphics.FONT_SMALL, "${f.icon}", Graphics.TEXT_JUSTIFY_CENTER);`);
+      const offX=f.iconPos==='left'
+        ? `${id}_X - ${Math.round(f.size*SCALE)} - ${scaledSize}`
+        : `${id}_X + ${Math.round(f.size*SCALE/2)} + 4`;
+      L.push(`        var ${iconId}Bmp = Ui.loadResource(Rez.Drawables.${iconId});`);
+      L.push(`        dc.drawBitmap(${offX}, ${id}_Y - ${Math.round(scaledSize/2)}, ${iconId}Bmp);`);
     }
     L.push(`        dc.setColor(${id}_COLOR, Graphics.COLOR_TRANSPARENT);`);
     L.push(`        dc.drawText(${id}_X, ${id}_Y, ${id}_FONT, ${valExpr}, ${align});`);
@@ -1269,6 +1276,120 @@ function updateCode(){
 }
 
 function copyCode(){navigator.clipboard.writeText(g('codeOut').textContent).then(()=>{const b=g('cpBtn');b.textContent='Kopiert ✓';setTimeout(()=>{b.textContent='Kopieren'},2000);});}
+async function dlAssets(){
+  // load JSZip
+  if(!window.JSZip){
+    await new Promise((res,rej)=>{const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';s.onload=res;s.onerror=rej;document.head.appendChild(s);});
+  }
+  const zip=new JSZip();
+  const SCALE=getScale();
+  const res=zip.folder('resources');
+  const drawables=res.folder('drawables');
+  const hasBg=!!bgImageUrl;
+
+  // collect used icons from text fields
+  const iconEntries=[];
+  const canvas=document.createElement('canvas');
+  const ctx=canvas.getContext('2d');
+
+  for(const f of fields){
+    if(SHAPES.includes(f.type)) continue;
+    if(!f.icon||f.icon===''||f.iconPos==='none') continue;
+    const iconColor=f.iconLinked?f.color:f.iconColor;
+    const sz=Math.round(f.iconSize*SCALE);
+    const id='icon_F'+f.id;
+
+    if(f.customIcon&&f.customIcon.includes('image/svg')){
+      // SVG with color replaced
+      try{
+        const svgStr=atob(f.customIcon.split(',')[1]);
+        const parser=new DOMParser();
+        const doc=parser.parseFromString(svgStr,'image/svg+xml');
+        const svg=doc.documentElement;
+        svg.querySelectorAll('[fill]').forEach(el=>{if(el.getAttribute('fill')!=='none')el.setAttribute('fill',iconColor);});
+        svg.querySelectorAll('[stroke]').forEach(el=>{if(el.getAttribute('stroke')!=='none')el.setAttribute('stroke',iconColor);});
+        svg.setAttribute('width',sz);svg.setAttribute('height',sz);
+        // rasterize SVG to PNG via canvas
+        const svgBlob=new Blob([svg.outerHTML],{type:'image/svg+xml'});
+        const url=URL.createObjectURL(svgBlob);
+        await new Promise(res=>{
+          const img=new Image();img.onload=()=>{
+            canvas.width=sz;canvas.height=sz;
+            ctx.clearRect(0,0,sz,sz);ctx.drawImage(img,0,0,sz,sz);
+            URL.revokeObjectURL(url);res();
+          };img.src=url;
+        });
+        const pngData=canvas.toDataURL('image/png').split(',')[1];
+        drawables.file(id+'.png', pngData, {base64:true});
+        iconEntries.push({id,file:id+'.png',fieldId:f.id});
+      }catch(e){console.error('SVG export error',e);}
+    } else if(f.customIcon){
+      // PNG custom icon
+      await new Promise(res=>{
+        const img=new Image();img.onload=()=>{
+          canvas.width=sz;canvas.height=sz;
+          ctx.clearRect(0,0,sz,sz);ctx.drawImage(img,0,0,sz,sz);
+          const pngData=canvas.toDataURL('image/png').split(',')[1];
+          drawables.file(id+'.png',pngData,{base64:true});
+          iconEntries.push({id,file:id+'.png',fieldId:f.id});
+          res();
+        };img.src=f.customIcon;
+      });
+    } else {
+      // text emoji/symbol — render to canvas with correct color
+      const sz2=Math.max(sz,20);
+      canvas.width=sz2;canvas.height=sz2;
+      ctx.clearRect(0,0,sz2,sz2);
+      ctx.fillStyle=iconColor;
+      ctx.font=`${Math.round(sz2*0.8)}px serif`;
+      ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText(f.icon,sz2/2,sz2/2);
+      const pngData=canvas.toDataURL('image/png').split(',')[1];
+      drawables.file(id+'.png',pngData,{base64:true});
+      iconEntries.push({id,file:id+'.png',fieldId:f.id});
+    }
+  }
+
+  // generate drawables.xml
+  let xml='<?xml version="1.0" encoding="UTF-8"?>\n<resources>\n';
+  if(hasBg) xml+='  <bitmap id="background" filename="background.png"/>\n';
+  xml+='  <bitmap id="LauncherIcon" filename="launcher_icon.png"/>\n';
+  iconEntries.forEach(e=>{xml+=\`  <bitmap id="${e.id}" filename="${e.file}"/>\n\`;});
+  xml+='</resources>';
+  drawables.file('drawables.xml', xml);
+
+  // placeholder launcher icon (60x60 black)
+  canvas.width=60;canvas.height=60;
+  ctx.fillStyle='#000000';ctx.fillRect(0,0,60,60);
+  drawables.file('launcher_icon.png', canvas.toDataURL('image/png').split(',')[1], {base64:true});
+
+  // README
+  const readme=\`Garmin Watch Face Assets
+========================
+1. Kopiere alle Dateien aus "resources/drawables/" in:
+   .../MWF1/resources/drawables/
+
+2. Falls du ein Hintergrundbild hast:
+   Speichere es als "background.png" (${DEVICE_RES[g('deviceSel').value]||416}x${DEVICE_RES[g('deviceSel').value]||416}px) im gleichen Ordner.
+
+3. Die drawables.xml ist bereits fertig generiert.
+
+4. Symbole wurden in der richtigen Farbe exportiert.
+
+Gerät: \${g('deviceSel').value} (\${DEVICE_RES[g('deviceSel').value]||416}x\${DEVICE_RES[g('deviceSel').value]||416}px)\`;
+  zip.file('README.txt', readme);
+
+  // also update MC code to use bitmap icons where applicable
+  // (already handled in updateCode via iconEntries)
+
+  const blob=await zip.generateAsync({type:'blob'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=(g('projectName').value||'MWF1')+'_assets.zip';
+  a.click();
+  toast('Assets ZIP heruntergeladen ✓');
+}
+
 function dlCode(){const proj=(g('projectName').value.trim()||'MWF1');const blob=new Blob([g('codeOut').textContent],{type:'text/plain'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=proj+'View.mc';a.click();}
 
 // init
