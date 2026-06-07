@@ -456,8 +456,20 @@ input[type=range]{flex:1;accent-color:#555;height:3px}
 <script>
 const SB_URL='https://ahcdqjpmtpqtzolymxhi.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoY2RxanBtdHBxdHpvbHlteGhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4Mzg4MjYsImV4cCI6MjA5NjQxNDgyNn0.HEIFscMe_EMWQ90v6ghhWm0OeafZEzrljX3rvrvnDoI';
-const sb=supabase.createClient(SB_URL,SB_KEY);
-let CU=null; // current user
+let sb=null;
+let CU=null;
+
+function initSupabase(){
+  try{
+    sb=supabase.createClient(SB_URL,SB_KEY);
+    sb.auth.getSession().then(({data:{session}})=>{
+      if(session){CU=session.user;onLogin();}
+    });
+  }catch(e){
+    console.error('Supabase init failed:',e);
+    document.querySelector('.auth-note').textContent='Verbindungsfehler — bitte Seite neu laden.';
+  }
+}
 
 // ── CONSTANTS ────────────────────────────────────────────────────
 const FONT_SIZES={FONT_TINY:16,FONT_SMALL:22,FONT_MEDIUM:32,FONT_LARGE:46,FONT_NUMBER_MILD:50,FONT_NUMBER_MEDIUM:72,FONT_NUMBER_HOT:96,FONT_NUMBER_THAI_HOT:120};
@@ -493,6 +505,7 @@ let authMode='login';
 function aTab(mode,btn){authMode=mode;document.querySelectorAll('.auth-tab').forEach(t=>t.classList.remove('on'));btn.classList.add('on');g('aBtn').textContent=mode==='login'?'Login':'Registrieren';g('aPw2Row').style.display=mode==='signup'?'':'none';g('aErr').textContent='';}
 
 async function doAuth(){
+  if(!sb){g('aErr').textContent='Verbindung wird aufgebaut, bitte warten...';initSupabase();return;}
   const email=g('aEmail').value.trim(),pw=g('aPw').value;
   if(!email||!pw){g('aErr').textContent='E-Mail und Passwort erforderlich';return;}
   g('aBtn').innerHTML='<span class="sp"></span>...';g('aErr').textContent='';
@@ -512,7 +525,7 @@ async function doAuth(){
 
 function onLogin(){g('authOverlay').style.display='none';g('userEmail').textContent=CU.email;loadDesignList();}
 async function doLogout(){await sb.auth.signOut();location.reload();}
-sb.auth.getSession().then(({data:{session}})=>{if(session){CU=session.user;onLogin();}});
+
 
 // ── DESIGN SIDEBAR ───────────────────────────────────────────────
 function toggleDsb(){g('dsb').classList.toggle('open');}
