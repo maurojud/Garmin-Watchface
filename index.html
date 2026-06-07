@@ -6,12 +6,7 @@
 <title>Garmin Watch Face Designer</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script>
-if(typeof supabase === 'undefined'){
-  document.write('<script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"><\/script>');
-}
-</script>
+<script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{--bg:#0a0a0a;--panel:#111;--border:#1e1e1e;--border2:#2a2a2a;--text:#ccc;--muted:#555}
@@ -465,11 +460,15 @@ function initSupabase(){
     sb.auth.getSession().then(({data:{session}})=>{
       if(session){CU=session.user;onLogin();}
     });
+    console.log('Supabase OK');
   }catch(e){
     console.error('Supabase init failed:',e);
-    document.querySelector('.auth-note').textContent='Verbindungsfehler — bitte Seite neu laden.';
+    const note=document.querySelector('.auth-note');
+    if(note)note.textContent='Verbindungsfehler — bitte Seite neu laden.';
   }
 }
+// Run immediately
+initSupabase();
 
 // ── CONSTANTS ────────────────────────────────────────────────────
 const FONT_SIZES={FONT_TINY:16,FONT_SMALL:22,FONT_MEDIUM:32,FONT_LARGE:46,FONT_NUMBER_MILD:50,FONT_NUMBER_MEDIUM:72,FONT_NUMBER_HOT:96,FONT_NUMBER_THAI_HOT:120};
