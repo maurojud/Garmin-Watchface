@@ -81,7 +81,7 @@ input[type=range]{flex:1;accent-color:#555;height:3px}
 .wbg{position:absolute;inset:0;background-size:cover;background-position:center}
 .wdim{position:absolute;inset:0;pointer-events:none}
 .wfl{position:absolute;inset:0;overflow:hidden}
-.wf{position:absolute;cursor:move;user-select:none;display:flex;align-items:center;gap:3px;transform:translate(-50%,-50%);padding:2px 4px;border:1px dashed transparent;border-radius:3px}
+.wf{position:absolute;cursor:move;user-select:none;display:flex;align-items:flex-start;gap:3px;transform:translateX(-50%);padding:2px 4px;border:1px dashed transparent;border-radius:3px}
 .wf:hover{border-color:rgba(255,255,255,.18)}
 .wf.sel{border-color:rgba(255,200,0,.75);background:rgba(255,200,0,.04)}
 .wf .wft{white-space:pre}
@@ -616,10 +616,10 @@ function newDesign(){
   currentDesignId=null;
   g('designName').value='Mein Design';
   fields=[
-    {id:0,type:'time',template:'',x:208,y:170,size:80,color:'#FFFFFF',iconColor:'#FFFFFF',iconLinked:false,font:'FONT_NUMBER_HOT',icon:'',iconPos:'none',iconSize:16,customIcon:null,align:'center',outlineColor:'',outlineWidth:1},
-    {id:1,type:'template',template:'%w %e.%m.%Y',x:208,y:100,size:28,color:'#BBBBBB',iconColor:'#888',iconLinked:false,font:'FONT_MEDIUM',icon:'',iconPos:'none',iconSize:12,customIcon:null,align:'center',outlineColor:'',outlineWidth:1},
-    {id:2,type:'hr',template:'',x:120,y:320,size:28,color:'#FF4444',iconColor:'#FF4444',iconLinked:true,font:'FONT_MEDIUM',icon:'♥',iconPos:'left',iconSize:20,customIcon:null,align:'center',outlineColor:'',outlineWidth:1},
-    {id:3,type:'altitude',template:'',x:300,y:320,size:28,color:'#44AAFF',iconColor:'#44AAFF',iconLinked:true,font:'FONT_MEDIUM',icon:'▲',iconPos:'left',iconSize:20,customIcon:null,align:'center',outlineColor:'',outlineWidth:1},
+    {id:0,type:'time',template:'',x:208,y:160,size:96,color:'#FFFFFF',iconColor:'#FFFFFF',iconLinked:false,font:'FONT_NUMBER_HOT',icon:'',iconPos:'none',iconSize:16,customIcon:null,align:'center',outlineColor:'',outlineWidth:1},
+    {id:1,type:'template',template:'%w %e.%m.%Y',x:208,y:56,size:32,color:'#BBBBBB',iconColor:'#888',iconLinked:false,font:'FONT_MEDIUM',icon:'',iconPos:'none',iconSize:12,customIcon:null,align:'center',outlineColor:'',outlineWidth:1},
+    {id:2,type:'hr',template:'',x:130,y:300,size:32,color:'#FF4444',iconColor:'#FF4444',iconLinked:true,font:'FONT_MEDIUM',icon:'♥',iconPos:'left',iconSize:20,customIcon:null,align:'center',outlineColor:'',outlineWidth:1},
+    {id:3,type:'altitude',template:'',x:290,y:270,size:32,color:'#44AAFF',iconColor:'#44AAFF',iconLinked:true,font:'FONT_MEDIUM',icon:'▲',iconPos:'left',iconSize:20,customIcon:null,align:'center',outlineColor:'',outlineWidth:1},
   ];
   nextId=4;selId=null;bgImageUrl=null;
   g('nosel').style.display='';g('fieldEditor').style.display='none';
@@ -749,8 +749,8 @@ function buildTplVarBtns(){
 
 // ── FIELD DATA ───────────────────────────────────────────────────
 const FONT_SIZES={
-  FONT_TINY:14, FONT_SMALL:20, FONT_MEDIUM:28, FONT_LARGE:38,
-  FONT_NUMBER_MILD:42, FONT_NUMBER_MEDIUM:56, FONT_NUMBER_HOT:80, FONT_NUMBER_THAI_HOT:100
+  FONT_TINY:16, FONT_SMALL:22, FONT_MEDIUM:32, FONT_LARGE:46,
+  FONT_NUMBER_MILD:50, FONT_NUMBER_MEDIUM:72, FONT_NUMBER_HOT:96, FONT_NUMBER_THAI_HOT:120
 };
 const DEVICE_RES={fr265:416,fr265s:360,fr255:260,fr745:240,fr955:260,fenix7:280,fenix7s:240,fenix6:260,epix2:416,venu2:390};
 function getScale(){return(DEVICE_RES[g('deviceSel').value]||416)/240;}
@@ -763,10 +763,10 @@ const SHAPES=['rect','circle'];
 const SAMPLE_VALS={time:'14:23',seconds:'07',weekday:'So',date:'07.06',month:'Juni',year:'2026',hr:'72',altitude:'437',steps:'6284',battery:'85',calories:'1840',distance:'8.4',floors:'12',stress:'34'};
 
 let fields=[
-  {id:0,type:'time',template:'',x:208,y:170,size:80,color:'#FFFFFF',iconColor:'#FFFFFF',iconLinked:false,font:'FONT_NUMBER_HOT',icon:'',iconPos:'none',iconSize:16,customIcon:null,align:'center',outlineColor:'',outlineWidth:1},
+  {id:0,type:'time',template:'',x:208,y:160,size:96,color:'#FFFFFF',iconColor:'#FFFFFF',iconLinked:false,font:'FONT_NUMBER_HOT',icon:'',iconPos:'none',iconSize:16,customIcon:null,align:'center',outlineColor:'',outlineWidth:1},
   {id:1,type:'template',template:'%w %e.%m.%Y',x:120,y:142,size:13,color:'#BBBBBB',iconColor:'#FFFFFF',iconLinked:false,font:'FONT_MEDIUM',icon:'',iconPos:'none',iconSize:12,customIcon:null,align:'center',outlineColor:'',outlineWidth:1},
-  {id:2,type:'hr',template:'',x:120,y:320,size:28,color:'#FF4444',iconColor:'#FF4444',iconLinked:true,font:'FONT_MEDIUM',icon:'♥',iconPos:'left',iconSize:20,customIcon:null,align:'center',outlineColor:'',outlineWidth:1},
-  {id:3,type:'altitude',template:'',x:300,y:320,size:28,color:'#44AAFF',iconColor:'#44AAFF',iconLinked:true,font:'FONT_MEDIUM',icon:'▲',iconPos:'left',iconSize:20,customIcon:null,align:'center',outlineColor:'',outlineWidth:1},
+  {id:2,type:'hr',template:'',x:130,y:300,size:32,color:'#FF4444',iconColor:'#FF4444',iconLinked:true,font:'FONT_MEDIUM',icon:'♥',iconPos:'left',iconSize:20,customIcon:null,align:'center',outlineColor:'',outlineWidth:1},
+  {id:3,type:'altitude',template:'',x:290,y:270,size:32,color:'#44AAFF',iconColor:'#44AAFF',iconLinked:true,font:'FONT_MEDIUM',icon:'▲',iconPos:'left',iconSize:20,customIcon:null,align:'center',outlineColor:'',outlineWidth:1},
 ];
 let nextId=4;
 let selId=null;
@@ -808,7 +808,8 @@ function render(){
     el.style.left=f.x+'px';el.style.top=f.y+'px';
     el.style.fontFamily=cssFontFamily(f.font);
     el.style.fontWeight=cssFontWeight(f.font);
-    el.style.fontSize=(FONT_SIZES[f.font]||f.size)+'px';el.style.color=f.color;
+    const pxSize=FONT_SIZES[f.font]||f.size;
+    el.style.fontSize=pxSize+'px';el.style.lineHeight='1';el.style.color=f.color;
     applyOutlineStyle(el,f);
     const iconColor=f.iconLinked?f.color:f.iconColor;
     if(f.iconPos==='left'&&f.icon){const ic=mkIcon(f,iconColor);if(ic)el.appendChild(ic);}
@@ -851,7 +852,7 @@ function renderShape(c,f){
 
 function mkIcon(f,color){
   const ic=document.createElement('span');
-  ic.style.fontSize=f.iconSize+'px';ic.style.color=color;ic.style.flexShrink='0';
+  ic.style.fontSize=f.iconSize+'px';ic.style.color=color;ic.style.flexShrink='0';ic.style.lineHeight='1';
   if(f.customIcon){
     if(f.customIcon.includes('image/svg')||f.customIcon.includes('<svg')){
       // SVG: replace fill/stroke with chosen color
@@ -1198,7 +1199,19 @@ function updateCode(){
   textFields.forEach(f=>{const id='F'+f.id;L.push(`    var ${id}_X=${f.x}; var ${id}_Y=${f.y}; var ${id}_FONT=${garminFont(f.font)};`);});
   shapeFields.forEach(f=>{const id='F'+f.id;L.push(`    var ${id}_X=${f.x}; var ${id}_Y=${f.y}; var ${id}_W=${f.w||40}; var ${id}_H=${f.h||40};`);});
   L.push(``);
-  L.push(`    function initialize() { WatchFace.initialize(); }`);
+  // collect fields with icons for initialize preloading
+  const iconFields=textFields.filter(f=>f.icon&&f.icon!==''&&f.iconPos!=='none');
+  const hasBgRes=hasBg;
+
+  L.push(`    // ── RESSOURCEN ────────────────────────────────`);
+  if(hasBgRes) L.push(`    var mBgBmp;`);
+  iconFields.forEach(f=>{L.push(`    var mIcon_F${f.id}Bmp;`);});
+  L.push(``);
+  L.push(`    function initialize() {`);
+  L.push(`        WatchFace.initialize();`);
+  if(hasBgRes) L.push(`        mBgBmp = Ui.loadResource(Rez.Drawables.background);`);
+  iconFields.forEach(f=>{L.push(`        mIcon_F${f.id}Bmp = Ui.loadResource(Rez.Drawables.icon_F${f.id});`);});
+  L.push(`    }`);
   L.push(`    function onLayout(dc) {}`);L.push(``);
   L.push(`    function onUpdate(dc) {`);
   L.push(`        var t = System.getClockTime();`);
@@ -1268,8 +1281,7 @@ function updateCode(){
       const offX=f.iconPos==='left'
         ? `${id}_X - ${f.size} - ${scaledSize}`
         : `${id}_X + ${Math.round(f.size/2)} + 4`;
-      L.push(`        var ${iconId}Bmp = Ui.loadResource(Rez.Drawables.${iconId});`);
-      L.push(`        dc.drawBitmap(${offX}, ${id}_Y - ${Math.round(scaledSize/2)}, ${iconId}Bmp);`);
+      L.push(`        dc.drawBitmap(${offX}, ${id}_Y - ${Math.round(scaledSize/2)}, mIcon_F${f.id}Bmp);`);
     }
     L.push(`        dc.setColor(${id}_COLOR, Graphics.COLOR_TRANSPARENT);`);
     L.push(`        dc.drawText(${id}_X, ${id}_Y, ${id}_FONT, ${valExpr}, ${align});`);
