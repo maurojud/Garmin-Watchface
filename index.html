@@ -467,8 +467,6 @@ function initSupabase(){
     if(note)note.textContent='Verbindungsfehler — bitte Seite neu laden.';
   }
 }
-// Run immediately
-initSupabase();
 
 // ── CONSTANTS ────────────────────────────────────────────────────
 const FONT_SIZES={FONT_TINY:16,FONT_SMALL:22,FONT_MEDIUM:32,FONT_LARGE:46,FONT_NUMBER_MILD:50,FONT_NUMBER_MEDIUM:72,FONT_NUMBER_HOT:96,FONT_NUMBER_THAI_HOT:120};
@@ -1118,4 +1116,14 @@ async function dlAssets(){
   drawables.file('drawables.xml',xml);
   zip.file('README.txt','1. Alle Dateien aus resources/drawables/ in das Projektverzeichnis kopieren.\n2. background.png (416x416px, 8-Bit PNG) dazulegen falls Hintergrundbild gewuenscht.\n3. drawables.xml ist fertig generiert.');
   const blob=await zip.generateAsync({type:'blob'});
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(g('projName').value||'MWF1')+'_assets.zip';a.click(
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(g('projName').value||'MWF1')+'_assets.zip';a.click();
+  toast('Assets ZIP heruntergeladen ✓');
+}
+
+// ── INIT ─────────────────────────────────────────────────────────
+render();
+updateCode();
+initSupabase();
+</script>
+</body>
+</html>
