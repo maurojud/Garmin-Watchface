@@ -77,11 +77,11 @@ input[type=range]{flex:1;accent-color:#555;height:3px}
 /* WATCH PREVIEW */
 .prev-col{display:flex;flex-direction:column;align-items:center;gap:8px}
 .watch-wrap{position:relative;width:416px;height:416px;flex-shrink:0}
-.wbezel{position:absolute;inset:0;border-radius:50%;background:conic-gradient(#282828,#3e3e3e,#282828,#181818,#282828);box-shadow:0 0 0 3px #080808,0 6px 20px rgba(0,0,0,.9);pointer-events:none;z-index:2}
-.wscreen{position:absolute;inset:0;border-radius:50%;overflow:hidden;background:#000;cursor:crosshair;clip-path:circle(49%)}
+.wbezel{position:absolute;inset:-8px;border-radius:50%;background:transparent;box-shadow:inset 0 0 0 8px #282828,0 0 0 3px #080808,0 6px 20px rgba(0,0,0,.9);pointer-events:none;z-index:2}
+.wscreen{position:absolute;inset:0;border-radius:50%;overflow:hidden;background:#000;cursor:crosshair}
 .wbg{position:absolute;inset:0;background-size:cover;background-position:center}
 .wdim{position:absolute;inset:0;pointer-events:none}
-.wfl{position:absolute;inset:0;overflow:hidden}
+.wfl{position:absolute;inset:0;overflow:visible;z-index:1}
 /* text field: X=center, Y=top (matches Garmin drawText behavior) */
 .wf{position:absolute;cursor:move;user-select:none;display:flex;align-items:flex-start;gap:2px;transform:translateX(-50%);padding:1px 3px;border:1px dashed transparent;border-radius:2px}
 .wf:hover{border-color:rgba(255,255,255,.2)}
