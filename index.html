@@ -365,33 +365,24 @@ input[type=range]{flex:1;accent-color:#555;height:3px}
           </div>
         </div>
 
-        <div class="lbl">Symbol</div>
-        <div class="ig" id="iconGrid"></div>
-        <div class="row" style="margin-top:2px">
-          <div class="upl" style="flex:1;padding:4px;font-size:9px" onclick="g('iconUp').click()">↑ PNG/SVG</div>
-          <input type="file" id="iconUp" accept="image/*,.svg" style="display:none" onchange="loadIcon(this)">
-        </div>
-        <div class="lbl">Symbolfarbe</div>
-        <div class="row">
-          <input type="text" id="fIco" maxlength="7" oninput="updCol('iconColor',this.value)" style="flex:1">
-          <div class="sw" id="fIcoSw" onclick="g('fIcoNat').click()"></div>
-          <input type="color" id="fIcoNat" style="display:none" oninput="g('fIco').value=this.value;updCol('iconColor',this.value)">
-          <!-- link button only shown for text fields -->
-          <button class="btn sm" id="linkBtn" onclick="linkIcon()" title="Farbe mit Textfarbe verknüpfen">🔗</button>
-        </div>
-        <!-- icon position only shown for text fields (not icon-only) -->
-        <div id="iconPosSection">
-          <div class="lbl">Symbol-Position</div>
-          <div class="seg" id="iconPosSeg">
-            <button onclick="upd('iconPos','left');segOn(this)">Links</button>
-            <button class="on" onclick="upd('iconPos','none');segOn(this)">Kein</button>
-            <button onclick="upd('iconPos','right');segOn(this)">Rechts</button>
+        <div id="iconSection">
+          <div class="lbl">Symbol</div>
+          <div class="ig" id="iconGrid"></div>
+          <div class="row" style="margin-top:2px">
+            <div class="upl" style="flex:1;padding:4px;font-size:9px" onclick="g('iconUp').click()">↑ PNG/SVG</div>
+            <input type="file" id="iconUp" accept="image/*,.svg" style="display:none" onchange="loadIcon(this)">
           </div>
-        </div>
-        <div class="lbl" style="margin-top:3px">Symbolgrösse</div>
-        <div class="row">
-          <input type="range" id="fIcoSz" min="8" max="80" step="2" oninput="g('fIcoSzN').value=this.value;upd('iconSize',+this.value)" style="flex:1">
-          <input type="number" id="fIcoSzN" min="8" max="80" style="width:38px" oninput="g('fIcoSz').value=this.value;upd('iconSize',+this.value)">
+          <div class="lbl">Symbolfarbe</div>
+          <div class="row">
+            <input type="text" id="fIco" maxlength="7" oninput="updCol('iconColor',this.value)" style="flex:1">
+            <div class="sw" id="fIcoSw" onclick="g('fIcoNat').click()"></div>
+            <input type="color" id="fIcoNat" style="display:none" oninput="g('fIco').value=this.value;updCol('iconColor',this.value)">
+          </div>
+          <div class="lbl" style="margin-top:3px">Symbolgrösse</div>
+          <div class="row">
+            <input type="range" id="fIcoSz" min="8" max="80" step="2" oninput="g('fIcoSzN').value=this.value;upd('iconSize',+this.value)" style="flex:1">
+            <input type="number" id="fIcoSzN" min="8" max="80" style="width:38px" oninput="g('fIcoSz').value=this.value;upd('iconSize',+this.value)">
+          </div>
         </div>
       </div>
 
@@ -480,7 +471,8 @@ function initSupabase(){
 
 // ── CONSTANTS ────────────────────────────────────────────────────
 const SCREEN=416; // FR265 only
-const FONT_SIZES={FONT_TINY:16,FONT_SMALL:22,FONT_MEDIUM:32,FONT_LARGE:46,FONT_NUMBER_MILD:50,FONT_NUMBER_MEDIUM:72,FONT_NUMBER_HOT:96,FONT_NUMBER_THAI_HOT:120};
+// Heights approximate real Garmin FR265 getFontHeight() values
+const FONT_SIZES={FONT_TINY:14,FONT_SMALL:18,FONT_MEDIUM:24,FONT_LARGE:36,FONT_NUMBER_MILD:42,FONT_NUMBER_MEDIUM:60,FONT_NUMBER_HOT:80,FONT_NUMBER_THAI_HOT:100};
 const FONT_MIGRATE={INTER_THIN:'FONT_SMALL',INTER_REG:'FONT_MEDIUM',INTER_BOLD:'FONT_NUMBER_HOT'};
 const SHAPES=['rect','circle'];
 const LABELS={template:'Freier Text',time:'Uhrzeit',seconds:'Sekunden',weekday:'Wochentag',date:'Datum',month:'Monat',year:'Jahr',hr:'Herzfrequenz',altitude:'Höhenmeter',steps:'Schritte',battery:'Batterie',calories:'Kalorien',distance:'Distanz',floors:'Stockwerke',stress:'Stress',icon:'Icon',rect:'Rechteck',circle:'Kreis'};
@@ -492,15 +484,18 @@ const SAMPLE_VALS={time:'14:23',seconds:'07',weekday:'So',date:'07.06',month:'Ju
 const TPL_VARS=[['%H','Std24'],['%h','Std12'],['%M','Min'],['%S','Sek'],['%p','AM/PM'],['%d','Tag'],['%e','Tag(no0)'],['%m','Monat#'],['%b','Jun'],['%B','Juni'],['%y','26'],['%Y','2026'],['%w','So'],['%W','Sonntag'],['%r','HR'],['%a','Höhe'],['%s','Schritte'],['%t','Batt%'],['%c','Kal'],['%k','km'],['%%','%']];
 const SAMPLE_NOW={H:'14',h:'2',M:'23',S:'07',p:'PM',d:'07',e:'7',m:'06',b:'Jun',B:'Juni',y:'26',Y:'2026',w:'So',W:'Sonntag',r:'72',a:'437',s:'6284',t:'85',c:'1840',k:'8.4'};
 
+// Text fields have NO icon properties — icons are always standalone icon-type fields
+// Icon field X/Y = center of the icon (matches Garmin drawBitmap x-size/2, y-size/2)
 let fields=[
-  {id:0,type:'time',template:'',x:208,y:160,color:'#FFFFFF',iconColor:'#FFFFFF',iconLinked:false,font:'FONT_NUMBER_HOT',icon:'',iconPos:'none',iconSize:20,customIcon:null,align:'center',valign:'top',outlineColor:'',outlineWidth:1},
-  {id:1,type:'template',template:'%w %e.%m.%Y',x:208,y:56,color:'#BBBBBB',iconColor:'#FFFFFF',iconLinked:false,font:'FONT_MEDIUM',icon:'',iconPos:'none',iconSize:16,customIcon:null,align:'center',valign:'top',outlineColor:'',outlineWidth:1},
-  {id:2,type:'hr',template:'',x:152,y:308,color:'#FF4444',iconColor:'#FF4444',iconLinked:true,font:'FONT_MEDIUM',icon:'',iconPos:'none',iconSize:22,customIcon:null,align:'center',valign:'top',outlineColor:'',outlineWidth:1},
-  {id:3,type:'icon',template:'',x:122,y:308,color:'#FF4444',iconColor:'#FF4444',iconLinked:false,font:'FONT_MEDIUM',icon:'♥',iconPos:'none',iconSize:22,customIcon:null,align:'center',valign:'top',outlineColor:'',outlineWidth:1},
-  {id:4,type:'altitude',template:'',x:278,y:308,color:'#44AAFF',iconColor:'#44AAFF',iconLinked:true,font:'FONT_MEDIUM',icon:'',iconPos:'none',iconSize:22,customIcon:null,align:'center',valign:'top',outlineColor:'',outlineWidth:1},
-  {id:5,type:'icon',template:'',x:248,y:308,color:'#44AAFF',iconColor:'#44AAFF',iconLinked:false,font:'FONT_MEDIUM',icon:'▲',iconPos:'none',iconSize:22,customIcon:null,align:'center',valign:'top',outlineColor:'',outlineWidth:1},
+  {id:0,type:'time',     template:'',          x:208,y:158, color:'#FFFFFF', font:'FONT_NUMBER_HOT', align:'center',valign:'top',outlineColor:'',outlineWidth:1},
+  {id:1,type:'template', template:'%w %e.%m.%Y',x:208,y:52,  color:'#BBBBBB', font:'FONT_MEDIUM',     align:'center',valign:'top',outlineColor:'',outlineWidth:1},
+  {id:2,type:'hr',       template:'',          x:160,y:308, color:'#FF4444', font:'FONT_MEDIUM',     align:'center',valign:'top',outlineColor:'',outlineWidth:1},
+  {id:3,type:'icon',     template:'',          x:131,y:320, iconColor:'#FF4444', icon:'♥', iconSize:22, customIcon:null},
+  {id:4,type:'altitude', template:'',          x:268,y:308, color:'#44AAFF', font:'FONT_MEDIUM',     align:'center',valign:'top',outlineColor:'',outlineWidth:1},
+  {id:5,type:'icon',     template:'',          x:239,y:320, iconColor:'#44AAFF', icon:'▲', iconSize:22, customIcon:null},
+  {id:6,type:'battery',  template:'',          x:208,y:358, color:'#FFDD44', font:'FONT_SMALL',      align:'center',valign:'top',outlineColor:'',outlineWidth:1},
 ];
-let nextId=6;
+let nextId=7;
 let selId=null;
 let bgUrl=null;
 let bgBlob=null; // raw file for ZIP download
@@ -591,8 +586,17 @@ async function loadDesign(id){
     g('wbg').style.backgroundImage='';
     g('bgFn').textContent='Cloud-Speicherung';
   }
-  // migrate old font names and old icon-in-text fields
-  fields=(data.fields||[]).map(f=>({...f,font:FONT_MIGRATE[f.font]||f.font,valign:f.valign||'top'}));
+  // migrate old font names; strip old inline-icon properties from text fields
+  fields=(data.fields||[]).map(f=>{
+    f={...f,font:FONT_MIGRATE[f.font]||f.font,valign:f.valign||'top'};
+    // old text fields had iconPos/icon/iconLinked — remove them
+    if(f.type!=='icon'&&!SHAPES.includes(f.type)){
+      delete f.iconPos; delete f.iconLinked;
+      // keep icon/iconSize/iconColor only on icon-type; remove from text fields
+      delete f.icon; delete f.iconSize; delete f.customIcon; delete f.iconColor;
+    }
+    return f;
+  });
   nextId=fields.length?Math.max(...fields.map(f=>f.id))+1:0;
   selId=null;g('nosel').style.display='';g('fEd').style.display='none';
   render();updateCode();toggleDsb();toast('Geladen ✓');
@@ -608,14 +612,15 @@ async function delDesign(id){
 function newDesign(){
   curDesignId=null;g('designName').value='Mein Design';
   fields=[
-    {id:0,type:'time',template:'',x:208,y:160,color:'#FFFFFF',iconColor:'#FFFFFF',iconLinked:false,font:'FONT_NUMBER_HOT',icon:'',iconPos:'none',iconSize:20,customIcon:null,align:'center',valign:'top',outlineColor:'',outlineWidth:1},
-    {id:1,type:'template',template:'%w %e.%m.%Y',x:208,y:56,color:'#BBBBBB',iconColor:'#FFFFFF',iconLinked:false,font:'FONT_MEDIUM',icon:'',iconPos:'none',iconSize:16,customIcon:null,align:'center',valign:'top',outlineColor:'',outlineWidth:1},
-    {id:2,type:'hr',template:'',x:152,y:308,color:'#FF4444',iconColor:'#FF4444',iconLinked:true,font:'FONT_MEDIUM',icon:'',iconPos:'none',iconSize:22,customIcon:null,align:'center',valign:'top',outlineColor:'',outlineWidth:1},
-    {id:3,type:'icon',template:'',x:122,y:308,color:'#FF4444',iconColor:'#FF4444',iconLinked:false,font:'FONT_MEDIUM',icon:'♥',iconPos:'none',iconSize:22,customIcon:null,align:'center',valign:'top',outlineColor:'',outlineWidth:1},
-    {id:4,type:'altitude',template:'',x:278,y:308,color:'#44AAFF',iconColor:'#44AAFF',iconLinked:true,font:'FONT_MEDIUM',icon:'',iconPos:'none',iconSize:22,customIcon:null,align:'center',valign:'top',outlineColor:'',outlineWidth:1},
-    {id:5,type:'icon',template:'',x:248,y:308,color:'#44AAFF',iconColor:'#44AAFF',iconLinked:false,font:'FONT_MEDIUM',icon:'▲',iconPos:'none',iconSize:22,customIcon:null,align:'center',valign:'top',outlineColor:'',outlineWidth:1},
+    {id:0,type:'time',     template:'',          x:208,y:158, color:'#FFFFFF', font:'FONT_NUMBER_HOT', align:'center',valign:'top',outlineColor:'',outlineWidth:1},
+    {id:1,type:'template', template:'%w %e.%m.%Y',x:208,y:52,  color:'#BBBBBB', font:'FONT_MEDIUM',     align:'center',valign:'top',outlineColor:'',outlineWidth:1},
+    {id:2,type:'hr',       template:'',          x:160,y:308, color:'#FF4444', font:'FONT_MEDIUM',     align:'center',valign:'top',outlineColor:'',outlineWidth:1},
+    {id:3,type:'icon',     template:'',          x:131,y:320, iconColor:'#FF4444', icon:'♥', iconSize:22, customIcon:null},
+    {id:4,type:'altitude', template:'',          x:268,y:308, color:'#44AAFF', font:'FONT_MEDIUM',     align:'center',valign:'top',outlineColor:'',outlineWidth:1},
+    {id:5,type:'icon',     template:'',          x:239,y:320, iconColor:'#44AAFF', icon:'▲', iconSize:22, customIcon:null},
+    {id:6,type:'battery',  template:'',          x:208,y:358, color:'#FFDD44', font:'FONT_SMALL',      align:'center',valign:'top',outlineColor:'',outlineWidth:1},
   ];
-  nextId=6;selId=null;bgUrl=null;bgBlob=null;
+  nextId=7;selId=null;bgUrl=null;bgBlob=null;
   g('wbg').style.cssText='background-image:none;background:#000';
   g('bgHex').value='#000000';g('dimR').value=0;applyDim(0);
   g('bgFn').textContent='Cloud-Speicherung';
@@ -774,10 +779,9 @@ function selectField(id){
   g('typeRow').style.display=(!isTpl&&!isShape&&!isIconOnly)?'':'none';
   g('iconOnlyRow').style.display=isIconOnly?'':'none';
   g('shapeRow').style.display=isShape?'':'none';
-  g('textSection').style.display=isShape?'none':'';
+  g('textSection').style.display=(isShape)?'none':'';
   g('fontSection').style.display=isIconOnly?'none':'';
-  g('iconPosSection').style.display=isIconOnly?'none':'';
-  g('linkBtn').style.display=isIconOnly?'none':'';
+  g('iconSection').style.display=isShape?'none':'';  // icons shown for both text-preview hint and icon fields
 
   if(isShape){
     g('fW').value=f.w||40;g('fH').value=f.h||40;
@@ -785,26 +789,25 @@ function selectField(id){
     setCol('fStroke','fStrokeSw','fStrokeNat',f.strokeColor||'');
     g('fStrokeW').value=f.strokeWidth||1;g('fStrokeWN').value=f.strokeWidth||1;
     g('fOpacity').value=f.opacity||100;g('fOpacityN').textContent=(f.opacity||100)+'%';
+  } else if(isIconOnly){
+    // Icon-only field
+    setCol('fIco','fIcoSw','fIcoNat',f.iconColor||'#FFFFFF');
+    g('fIcoSz').value=f.iconSize||22;g('fIcoSzN').value=f.iconSize||22;
+    renderIconGrid(f);
   } else {
+    // Text field
     if(isTpl){
       g('fTpl').value=f.template||'';buildTplBtns();updTplPreview();
       setSegVal('tplAlignSeg',f.align||'center',['left','center','right']);
-    } else if(!isIconOnly){
+    } else {
       g('fType').value=f.type;
       setSegVal('alignSeg',f.align||'center',['left','center','right']);
       setSegVal('valignSeg',f.valign||'top',['top','vcenter']);
     }
-    if(!isIconOnly){
-      g('fFont').value=f.font;
-      setCol('fCol','fColSw','fColNat',f.color);
-      setCol('fOutline','fOutlineSw','fOutlineNat',f.outlineColor||'');
-      g('fOutlineW').value=f.outlineWidth||1;g('fOutlineWN').value=f.outlineWidth||1;
-      g('linkBtn').textContent=f.iconLinked?'🔗':'🔓';
-    }
-    setCol('fIco','fIcoSw','fIcoNat',f.iconColor||'#FFFFFF');
-    if(!isIconOnly) setSegVal('iconPosSeg',f.iconPos||'none',['left','none','right']);
-    g('fIcoSz').value=f.iconSize||16;g('fIcoSzN').value=f.iconSize||16;
-    renderIconGrid(f);
+    g('fFont').value=f.font;
+    setCol('fCol','fColSw','fColNat',f.color);
+    setCol('fOutline','fOutlineSw','fOutlineNat',f.outlineColor||'');
+    g('fOutlineW').value=f.outlineWidth||1;g('fOutlineWN').value=f.outlineWidth||1;
   }
   g('fX').value=f.x;g('fY').value=f.y;
   updateCode();
@@ -825,14 +828,12 @@ function segOn(btn){btn.parentElement.querySelectorAll('button').forEach(b=>b.cl
 function renderIconGrid(f){
   const grid=g('iconGrid');grid.innerHTML='';
   const nb=document.createElement('button');nb.className='ib'+(f.icon===''&&!f.customIcon?' on':'');nb.textContent='∅';
-  nb.onclick=()=>{upd('icon','');upd('customIcon',null);if(f.type!=='icon')upd('iconPos','none');renderIconGrid(fields.find(x=>x.id===selId));};
+  nb.onclick=()=>{upd('icon','');upd('customIcon',null);renderIconGrid(fields.find(x=>x.id===selId));};
   grid.appendChild(nb);
   BUILTIN_ICONS.forEach(ic=>{
     const b=document.createElement('button');b.className='ib'+(f.icon===ic&&!f.customIcon?' on':'');b.textContent=ic;
     b.onclick=()=>{
       upd('icon',ic);upd('customIcon',null);
-      const cf=fields.find(x=>x.id===selId);
-      if(cf&&cf.type!=='icon'&&cf.iconPos==='none')upd('iconPos','left');
       renderIconGrid(fields.find(x=>x.id===selId));
     };
     grid.appendChild(b);
@@ -841,7 +842,7 @@ function renderIconGrid(f){
     const b=document.createElement('button');b.className='ib on';b.title='Aktives Symbol';b.style.position='relative';
     const img=document.createElement('img');img.src=f.customIcon;img.style.cssText='width:14px;height:14px;vertical-align:middle;filter:invert(1)';b.appendChild(img);
     const x=document.createElement('span');x.textContent='×';x.style.cssText='position:absolute;top:-3px;right:-2px;font-size:8px;color:#a55;cursor:pointer';
-    x.onclick=e=>{e.stopPropagation();upd('customIcon',null);upd('icon','');if(f.type!=='icon')upd('iconPos','none');renderIconGrid(fields.find(f=>f.id===selId));};
+    x.onclick=e=>{e.stopPropagation();upd('customIcon',null);upd('icon','');renderIconGrid(fields.find(f=>f.id===selId));};
     b.appendChild(x);grid.appendChild(b);
   }
   if(savedIcons.length){
@@ -852,7 +853,7 @@ function renderIconGrid(f){
       const x=document.createElement('span');x.textContent='×';x.style.cssText='position:absolute;top:-3px;right:-2px;font-size:8px;color:#633;cursor:pointer';
       x.onclick=e=>{e.stopPropagation();savedIcons=savedIcons.filter(i=>i.url!==si.url);localStorage.setItem('gwd_icons',JSON.stringify(savedIcons));renderIconGrid(fields.find(f=>f.id===selId));};
       b.appendChild(x);
-      b.onclick=()=>{const cf=fields.find(f=>f.id===selId);if(!cf)return;cf.customIcon=si.url;cf.icon='CUSTOM';if(cf.type!=='icon'&&cf.iconPos==='none')cf.iconPos='left';render();selectField(selId);updateCode();};
+      b.onclick=()=>{const cf=fields.find(f=>f.id===selId);if(!cf)return;cf.customIcon=si.url;cf.icon='CUSTOM';render();selectField(selId);updateCode();};
       grid.appendChild(b);
     });
   }
@@ -868,20 +869,12 @@ function loadIcon(inp){
     const f=fields.find(x=>x.id===selId);
     f.customIcon=url;f.icon='CUSTOM';
     if(!f.iconColor||f.iconColor==='#888')f.iconColor='#FFFFFF';
-    if(f.type!=='icon'&&f.iconPos==='none')f.iconPos='left';
     if(!savedIcons.find(i=>i.url===url)){savedIcons.push({name,url});localStorage.setItem('gwd_icons',JSON.stringify(savedIcons));}
     render();selectField(selId);updateCode();
   };
   r.readAsDataURL(file);
 }
 
-function linkIcon(){
-  if(selId===null)return;
-  const f=fields.find(x=>x.id===selId);
-  f.iconLinked=!f.iconLinked;g('linkBtn').textContent=f.iconLinked?'🔗':'🔓';
-  if(f.iconLinked)f.iconColor=f.color;
-  render();updateCode();
-}
 
 // ── UPDATE ───────────────────────────────────────────────────────
 function upd(prop,val){
@@ -901,7 +894,7 @@ function updCol(prop,val){
   if(selId===null)return;
   const f=fields.find(x=>x.id===selId);if(!f)return;
   f[prop]=val;
-  if(prop==='color'){g('fColSw').style.background=val;try{g('fColNat').value=val;}catch(e){}if(f.iconLinked){f.iconColor=val;setCol('fIco','fIcoSw','fIcoNat',val);}}
+  if(prop==='color'){g('fColSw').style.background=val;try{g('fColNat').value=val;}catch(e){}}
   if(prop==='iconColor'){g('fIcoSw').style.background=val;try{g('fIcoNat').value=val;}catch(e){}}
   if(prop==='outlineColor'){g('fOutlineSw').style.background=val||'transparent';try{if(val&&val.length===7)g('fOutlineNat').value=val;}catch(e){}}
   if(prop==='fillColor'){g('fFillSw').style.background=val;try{g('fFillNat').value=val;}catch(e){}}
@@ -913,14 +906,15 @@ function addField(){
   const type=g('addType').value;
   const isShape=SHAPES.includes(type);
   const isIconOnly=type==='icon';
-  const ic=ICONS_DEF[type]||'';
-  const base={id:nextId++,type,x:208,y:208,align:'center',valign:'top'};
+  const base={id:nextId++,type,x:208,y:208};
   if(isShape){
     fields.push({...base,w:60,h:type==='circle'?60:20,fillColor:'rgba(255,255,255,0.15)',strokeColor:'#FFFFFF',strokeWidth:1,opacity:80});
   } else if(isIconOnly){
-    fields.push({...base,template:'',color:'#FFFFFF',iconColor:'#FFFFFF',iconLinked:false,font:'FONT_MEDIUM',icon:'♥',iconPos:'none',iconSize:28,customIcon:null,outlineColor:'',outlineWidth:1});
+    // Icon-only field: just icon props, no text props
+    fields.push({...base,iconColor:'#FFFFFF',icon:'♥',iconSize:28,customIcon:null});
   } else {
-    fields.push({...base,template:type==='template'?'%w %e.%m':'',color:DFLT_COL[type]||'#FFFFFF',iconColor:ic?DFLT_COL[type]:'#FFFFFF',iconLinked:!!ic,font:'FONT_MEDIUM',icon:'',iconPos:'none',iconSize:22,customIcon:null,outlineColor:'',outlineWidth:1});
+    // Text field: no icon properties at all
+    fields.push({...base,template:type==='template'?'%w %e.%m':'',color:DFLT_COL[type]||'#FFFFFF',font:'FONT_MEDIUM',align:'center',valign:'top',outlineColor:'',outlineWidth:1});
   }
   render();updateCode();
 }
@@ -1103,9 +1097,8 @@ function updateCode(){
   const needsDOWL=/%W/.test(tplStr);
   const needsMONS=textFields.some(f=>f.type==='month')||/%b/.test(tplStr);
   const needsMONL=/%B/.test(tplStr);
-  // Icon fields for code: text fields with inline icon + standalone icon elements
-  const inlineIconFields=textFields.filter(f=>f.icon&&f.icon!==''&&f.iconPos!=='none');
-  const allIconFields=[...inlineIconFields,...iconOnlyFields];
+  // Only standalone icon fields generate drawBitmap — no inline icons in text fields
+  const allIconFields=iconOnlyFields.filter(f=>f.icon&&f.icon!=='');
 
   let L=[];
   L.push(`// ================================================================`);
@@ -1206,14 +1199,6 @@ function updateCode(){
       L.push(`        dc.setColor(${id}_OUTLINE, Graphics.COLOR_TRANSPARENT);`);
       for(let dx=-ow;dx<=ow;dx++){for(let dy=-ow;dy<=ow;dy++){if(dx===0&&dy===0)continue;L.push(`        dc.drawText(${id}_X+${dx}, ${id}_Y+${dy}, ${id}_FONT, ${valExpr}, ${align});`);}}
     }
-    // Inline icon (text fields only — standalone icons handled above)
-    if(f.icon&&f.icon!==''&&f.iconPos!=='none'){
-      const sz=f.iconSize||22;
-      const fontHalf=Math.round((FONT_SIZES[f.font]||36)/2);
-      const offX=f.iconPos==='left'?`${id}_X - ${fontHalf} - ${sz} - 2`:`${id}_X + ${fontHalf} + 2`;
-      const offY=f.valign==='vcenter'?`${id}_Y - ${sz}/2`:`${id}_Y`;
-      L.push(`        dc.drawBitmap(${offX}, ${offY}, mIcon_F${f.id});`);
-    }
     // Text
     L.push(`        dc.setColor(${id}_COLOR, Graphics.COLOR_TRANSPARENT);`);
     L.push(`        dc.drawText(${id}_X, ${id}_Y, ${id}_FONT, ${valExpr}, ${align});`);
@@ -1247,14 +1232,12 @@ async function dlAssets(){
   const zip=new JSZip();
   const drawables=zip.folder('resources/drawables');
 
-  // ── Collect all icon fields (inline + standalone) ──
-  const textFields=fields.filter(f=>!SHAPES.includes(f.type)&&f.type!=='icon');
-  const inlineIconFields=textFields.filter(f=>f.icon&&f.icon!==''&&f.iconPos!=='none');
+  // Only standalone icon-type fields — no inline icons exist anymore
   const iconOnlyFields=fields.filter(f=>f.type==='icon'&&f.icon&&f.icon!=='');
-  const allIconFields=[...inlineIconFields,...iconOnlyFields];
+  const allIconFields=iconOnlyFields;
 
   const canvas=document.createElement('canvas');const ctx=canvas.getContext('2d');
-  const getIconColor=f=>f.iconLinked?f.color:(f.iconColor||'#FFFFFF');
+  const getIconColor=f=>f.iconColor||'#FFFFFF';
 
   for(const f of allIconFields){
     const sz=f.iconSize||22;
