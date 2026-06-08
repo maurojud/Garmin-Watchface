@@ -78,7 +78,7 @@ input[type=range]{flex:1;accent-color:#555;height:3px}
 .prev-col{display:flex;flex-direction:column;align-items:center;gap:8px}
 .watch-wrap{position:relative;width:416px;height:416px;flex-shrink:0}
 .wbezel{position:absolute;inset:0;border-radius:50%;background:conic-gradient(#282828,#3e3e3e,#282828,#181818,#282828);box-shadow:0 0 0 3px #080808,0 6px 20px rgba(0,0,0,.9);pointer-events:none;z-index:2}
-.wscreen{position:absolute;inset:0;border-radius:50%;overflow:hidden;background:#000;cursor:crosshair;clip-path:circle(50%)}
+.wscreen{position:absolute;inset:0;border-radius:50%;overflow:hidden;background:#000;cursor:crosshair;clip-path:circle(49%)}
 .wbg{position:absolute;inset:0;background-size:cover;background-position:center}
 .wdim{position:absolute;inset:0;pointer-events:none}
 .wfl{position:absolute;inset:0;overflow:hidden}
@@ -960,7 +960,7 @@ function updateCode(){
   const needsDOWL=/%W/.test(tplStr);
   const needsMONS=textFields.some(f=>f.type==='month')||/%b/.test(tplStr);
   const needsMONL=/%B/.test(tplStr);
-  const iconFields=textFields.filter(f=>f.icon&&f.icon!==''&&f.iconPos!=='none'&&f.customIcon);
+  const iconFields=textFields.filter(f=>f.icon&&f.icon!==''&&f.iconPos!=='none');
 
   let L=[];
   L.push(`// ================================================================`);
@@ -978,6 +978,7 @@ function updateCode(){
     const id='F'+f.id;
     L.push(`    var ${id}_COLOR = ${toHex(f.color)};`);
     if(f.outlineColor&&f.outlineColor.length===7)L.push(`    var ${id}_OUTLINE = ${toHex(f.outlineColor)};`);
+
   });
   L.push('');
   L.push(`    // ── POSITIONEN & SCHRIFTEN ─────────────────────`);
@@ -1051,10 +1052,13 @@ function updateCode(){
       L.push(`        dc.setColor(${id}_OUTLINE, Graphics.COLOR_TRANSPARENT);`);
       for(let dx=-ow;dx<=ow;dx++){for(let dy=-ow;dy<=ow;dy++){if(dx===0&&dy===0)continue;L.push(`        dc.drawText(${id}_X+${dx}, ${id}_Y+${dy}, ${id}_FONT, ${valExpr}, ${align});`);}}
     }
-    // icon (custom PNG)
-    if(f.customIcon&&f.icon&&f.iconPos!=='none'){
+    // icon - always drawBitmap (PNG exported in assets ZIP)
+    if(f.icon&&f.icon!==''&&f.iconPos!=='none'){
       const sz=f.iconSize||22;
-      const offX=f.iconPos==='left'?`${id}_X - ${Math.round(f.size/2)} - ${sz} - 4`:`${id}_X + ${Math.round(f.size/2)} + 4`;
+      const fontHalf=Math.round((FONT_SIZES[f.font]||36)/2);
+      const offX=f.iconPos==='left'
+        ? `${id}_X - ${fontHalf} - ${sz} - 2`
+        : `${id}_X + ${fontHalf} + 2`;
       L.push(`        dc.drawBitmap(${offX}, ${id}_Y, mIcon_F${f.id});`);
     }
     // text
@@ -1082,27 +1086,42 @@ async function dlAssets(){
   if(!window.JSZip){await new Promise((res,rej)=>{const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';s.onload=res;s.onerror=rej;document.head.appendChild(s);});}
   const zip=new JSZip();
   const drawables=zip.folder('resources/drawables');
-  const iconFields=fields.filter(f=>!SHAPES.includes(f.type)&&f.icon&&f.icon!==''&&f.iconPos!=='none'&&f.customIcon);
+  // ALL icon fields exported as PNG (emoji rendered on canvas, SVG/PNG as-is)
+  const iconFields=fields.filter(f=>!SHAPES.includes(f.type)&&f.icon&&f.icon!==''&&f.iconPos!=='none');
   const canvas=document.createElement('canvas');const ctx=canvas.getContext('2d');
   const iconColor=f=>f.iconLinked?f.color:(f.iconColor||'#FFFFFF');
   for(const f of iconFields){
-    const sz=f.iconSize||22;canvas.width=sz;canvas.height=sz;ctx.clearRect(0,0,sz,sz);
-    if(f.customIcon.includes('image/svg')){
+    const sz=f.iconSize||22;
+    canvas.width=sz*2;canvas.height=sz*2;ctx.clearRect(0,0,sz*2,sz*2);
+    const col=iconColor(f);
+    if(f.customIcon&&f.customIcon.includes('image/svg')){
+      // SVG with color replacement
       try{
         const svgStr=atob(f.customIcon.split(',')[1]);
         const doc=new DOMParser().parseFromString(svgStr,'image/svg+xml');
         const svg=doc.documentElement;
-        const col=iconColor(f);
         svg.querySelectorAll('[fill]').forEach(el=>{if(el.getAttribute('fill')!=='none')el.setAttribute('fill',col);});
-        svg.setAttribute('width',sz);svg.setAttribute('height',sz);
+        svg.querySelectorAll('[stroke]').forEach(el=>{if(el.getAttribute('stroke')!=='none')el.setAttribute('stroke',col);});
+        svg.setAttribute('width',sz*2);svg.setAttribute('height',sz*2);
         const blob=new Blob([svg.outerHTML],{type:'image/svg+xml'});
         const url=URL.createObjectURL(blob);
-        await new Promise(res=>{const img=new Image();img.onload=()=>{ctx.drawImage(img,0,0,sz,sz);URL.revokeObjectURL(url);res();};img.src=url;});
+        await new Promise(res=>{const img=new Image();img.onload=()=>{ctx.drawImage(img,0,0,sz*2,sz*2);URL.revokeObjectURL(url);res();};img.onerror=res;img.src=url;});
       }catch(e){}
+    } else if(f.customIcon){
+      // PNG custom icon
+      await new Promise(res=>{const img=new Image();img.onload=()=>{ctx.drawImage(img,0,0,sz*2,sz*2);res();};img.onerror=res;img.src=f.customIcon;});
     } else {
-      await new Promise(res=>{const img=new Image();img.onload=()=>{ctx.drawImage(img,0,0,sz,sz);res();};img.src=f.customIcon;});
+      // Emoji/text icon - render to canvas
+      ctx.fillStyle=col;
+      ctx.font=`${Math.round(sz*1.6)}px serif`;
+      ctx.textAlign='center';
+      ctx.textBaseline='middle';
+      ctx.fillText(f.icon, sz, sz);
     }
-    drawables.file(`icon_F${f.id}.png`,canvas.toDataURL('image/png').split(',')[1],{base64:true});
+    // scale down to target size
+    const c2=document.createElement('canvas');c2.width=sz;c2.height=sz;
+    c2.getContext('2d').drawImage(canvas,0,0,sz*2,sz*2,0,0,sz,sz);
+    drawables.file(`icon_F${f.id}.png`,c2.toDataURL('image/png').split(',')[1],{base64:true});
   }
   // launcher icon 60x60 black
   canvas.width=60;canvas.height=60;ctx.fillStyle='#000';ctx.fillRect(0,0,60,60);
@@ -1114,7 +1133,18 @@ async function dlAssets(){
   iconFields.forEach(f=>{xml+=`  <bitmap id="icon_F${f.id}" filename="icon_F${f.id}.png"/>\n`;});
   xml+='</resources>';
   drawables.file('drawables.xml',xml);
-  zip.file('README.txt','1. Alle Dateien aus resources/drawables/ in das Projektverzeichnis kopieren.\n2. background.png (416x416px, 8-Bit PNG) dazulegen falls Hintergrundbild gewuenscht.\n3. drawables.xml ist fertig generiert.');
+  zip.file('README.txt',
+  '=== Garmin Watch Face Assets ===\n\n'+
+  '1. Alle Dateien aus resources/drawables/ kopieren nach:\n'+
+  '   .../'+( g('projName').value||'MWF1')+'/resources/drawables/\n\n'+
+  '2. Hintergrundbild:\n'+
+  '   - Als background.png (8-Bit PNG, 416x416px fuer FR265) in drawables/ ablegen\n'+
+  '   - WICHTIG: Bild muss 8-Bit PNG sein (nicht 24-Bit)\n'+
+  '   - In Photoshop: Export > Als Web speichern > PNG-8\n\n'+
+  '3. drawables.xml ist fertig generiert und enthalten.\n\n'+
+  '4. Emoji-Symbole (Herz, Pfeil etc.) werden direkt als Text gezeichnet,\n'+
+  '   keine PNG-Dateien noetig.\n'
+);
   const blob=await zip.generateAsync({type:'blob'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(g('projName').value||'MWF1')+'_assets.zip';a.click();
   toast('Assets ZIP heruntergeladen ✓');
