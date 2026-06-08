@@ -77,8 +77,8 @@ input[type=range]{flex:1;accent-color:#555;height:3px}
 /* WATCH PREVIEW */
 .prev-col{display:flex;flex-direction:column;align-items:center;gap:8px}
 .watch-wrap{position:relative;width:416px;height:416px;flex-shrink:0}
-.wbezel{position:absolute;inset:0;border-radius:50%;background:conic-gradient(#282828,#3e3e3e,#282828,#181818,#282828);box-shadow:0 0 0 3px #080808,0 6px 20px rgba(0,0,0,.9)}
-.wscreen{position:absolute;inset:16px;border-radius:50%;overflow:hidden;background:#000;cursor:crosshair}
+.wbezel{position:absolute;inset:0;border-radius:50%;background:conic-gradient(#282828,#3e3e3e,#282828,#181818,#282828);box-shadow:0 0 0 3px #080808,0 6px 20px rgba(0,0,0,.9);pointer-events:none;z-index:2}
+.wscreen{position:absolute;inset:0;border-radius:50%;overflow:hidden;background:#000;cursor:crosshair;clip-path:circle(50%)}
 .wbg{position:absolute;inset:0;background-size:cover;background-position:center}
 .wdim{position:absolute;inset:0;pointer-events:none}
 .wfl{position:absolute;inset:0;overflow:hidden}
@@ -469,7 +469,7 @@ function initSupabase(){
 }
 
 // ── CONSTANTS ────────────────────────────────────────────────────
-const FONT_SIZES={FONT_TINY:16,FONT_SMALL:22,FONT_MEDIUM:32,FONT_LARGE:46,FONT_NUMBER_MILD:50,FONT_NUMBER_MEDIUM:72,FONT_NUMBER_HOT:96,FONT_NUMBER_THAI_HOT:120};
+const FONT_SIZES={FONT_TINY:20,FONT_SMALL:26,FONT_MEDIUM:36,FONT_LARGE:52,FONT_NUMBER_MILD:58,FONT_NUMBER_MEDIUM:82,FONT_NUMBER_HOT:108,FONT_NUMBER_THAI_HOT:134};
 const FONT_MIGRATE={INTER_THIN:'FONT_SMALL',INTER_REG:'FONT_MEDIUM',INTER_BOLD:'FONT_NUMBER_HOT'};
 const SHAPES=['rect','circle'];
 const LABELS={template:'Freier Text',time:'Uhrzeit',seconds:'Sekunden',weekday:'Wochentag',date:'Datum',month:'Monat',year:'Jahr',hr:'Herzfrequenz',altitude:'Höhenmeter',steps:'Schritte',battery:'Batterie',calories:'Kalorien',distance:'Distanz',floors:'Stockwerke',stress:'Stress',rect:'Rechteck',circle:'Kreis'};
