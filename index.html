@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Garmin Watch Face Designer</title>
+<title>Garmin Watch Face Designer — FR265</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -82,11 +82,16 @@ input[type=range]{flex:1;accent-color:#555;height:3px}
 .wbg{position:absolute;inset:0;background-size:cover;background-position:center}
 .wdim{position:absolute;inset:0;pointer-events:none}
 .wfl{position:absolute;inset:0;overflow:visible;z-index:1}
-/* text field: X=center, Y=top (matches Garmin drawText behavior) */
-.wf{position:absolute;cursor:move;user-select:none;display:flex;align-items:flex-start;gap:2px;transform:translateX(-50%);padding:1px 3px;border:1px dashed transparent;border-radius:2px}
+
+/* text element: X=center, Y=top */
+.wf{position:absolute;cursor:move;user-select:none;display:flex;align-items:center;gap:2px;transform:translateX(-50%);padding:1px 3px;border:1px dashed transparent;border-radius:2px}
 .wf:hover{border-color:rgba(255,255,255,.2)}
 .wf.sel{border-color:rgba(255,200,0,.8);background:rgba(255,200,0,.04)}
-.wf .wft{white-space:pre;line-height:1.1}
+.wf .wft{white-space:pre;line-height:1}
+/* icon element: X=center, Y=center */
+.wico{position:absolute;cursor:move;user-select:none;display:flex;align-items:center;justify-content:center;transform:translate(-50%,-50%);padding:2px;border:1px dashed transparent;border-radius:2px}
+.wico:hover{border-color:rgba(255,255,255,.2)}
+.wico.sel{border-color:rgba(255,200,0,.8);background:rgba(255,200,0,.04)}
 /* shape: centered on X,Y */
 .wshape{position:absolute;cursor:move;border:1px dashed transparent;transform:translate(-50%,-50%)}
 .wshape:hover{border-color:rgba(255,255,255,.2)!important}
@@ -109,10 +114,6 @@ input[type=range]{flex:1;accent-color:#555;height:3px}
 .seg button{flex:1;padding:4px;font-size:9px;background:#0a0a0a;border:none;color:#444;cursor:pointer;font-family:'Courier New',monospace;transition:all .1s}
 .seg button.on{background:#1e1e1e;color:#bbb}
 .seg button:hover{background:#141414}
-.font-item{display:flex;align-items:center;gap:5px;padding:3px 6px;border-radius:3px;border:1px solid #1a1a1a;background:#0a0a0a;font-size:9px}
-.font-item .fn-n{flex:1;color:#777;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.fn-del{font-size:9px;color:#633;cursor:pointer;padding:1px 4px;border-radius:2px;border:1px solid #2a1a1a;flex-shrink:0}
-.fn-del:hover{background:#1a0a0a;color:#a55}
 .tpl-vars{display:flex;flex-wrap:wrap;gap:2px;margin-bottom:3px}
 .tv{font-size:9px;font-family:'Courier New',monospace;padding:2px 4px;border-radius:3px;border:1px solid #222;background:#0d0d0d;color:#555;cursor:pointer;transition:all .1s}
 .tv:hover{border-color:#444;color:#aaa}
@@ -126,6 +127,8 @@ input[type=range]{flex:1;accent-color:#555;height:3px}
 .toast.show{opacity:1}
 .sp{display:inline-block;width:10px;height:10px;border:1.5px solid #444;border-top-color:#888;border-radius:50%;animation:spin .6s linear infinite;margin-right:4px;vertical-align:middle}
 @keyframes spin{to{transform:rotate(360deg)}}
+/* icon field highlight in list */
+.fi.ico-field .dot{border-radius:2px}
 </style>
 </head>
 <body>
@@ -142,12 +145,12 @@ input[type=range]{flex:1;accent-color:#555;height:3px}
     <div id="aPw2Row" style="display:none"><input class="auth-input" id="aPw2" type="password" placeholder="Passwort bestätigen"></div>
     <div class="auth-err" id="aErr"></div>
     <button class="auth-btn" onclick="doAuth()" id="aBtn">Login</button>
-    <div class="auth-note">Designs, Schriften und Bilder werden in der Cloud gespeichert.</div>
+    <div class="auth-note">Designs und Bilder werden in der Cloud gespeichert.</div>
   </div>
 </div>
 
 <div id="topBar">
-  <h1>◈ Garmin Watch Face Designer</h1>
+  <h1>◈ Garmin Watch Face Designer · FR265</h1>
   <button class="tbtn" onclick="toggleDsb()">☰ Designs</button>
   <button class="tbtn grn" onclick="saveDesign()" id="saveBtn">↑ Speichern</button>
   <button class="tbtn acc" onclick="switchTab('code',3)">↓ Code</button>
@@ -185,6 +188,7 @@ input[type=range]{flex:1;accent-color:#555;height:3px}
       <option value="distance">Distanz km</option>
       <option value="floors">Stockwerke</option>
       <option value="stress">Stress</option>
+      <option value="icon">◉ Icon (separat)</option>
       <option value="rect">▭ Rechteck</option>
       <option value="circle">◯ Kreis</option>
     </select>
@@ -220,7 +224,7 @@ input[type=range]{flex:1;accent-color:#555;height:3px}
       <div class="wfl" id="wfl"></div>
     </div>
   </div>
-  <div style="font-size:9px;color:#222;text-align:center">X=horizontal · Y=von oben · Anklicken zum Auswählen</div>
+  <div style="font-size:9px;color:#222;text-align:center">X=horizontal · Y=von oben (Text) / Mitte (Icon, Shape) · Anklicken zum Auswählen</div>
   <input type="text" id="designName" value="Mein Design" style="width:220px;text-align:center;font-size:10px">
 </div>
 
@@ -279,6 +283,16 @@ input[type=range]{flex:1;accent-color:#555;height:3px}
           <button class="on" onclick="upd('align','center');segOn(this)">Mitte</button>
           <button onclick="upd('align','right');segOn(this)">Rechts</button>
         </div>
+        <div class="lbl" style="margin-top:4px">Vertikale Ausrichtung</div>
+        <div class="seg" id="valignSeg">
+          <button class="on" onclick="upd('valign','top');segOn(this)">Oben</button>
+          <button onclick="upd('valign','vcenter');segOn(this)">Mitte</button>
+        </div>
+      </div>
+
+      <!-- Icon-only row -->
+      <div id="iconOnlyRow" style="display:none">
+        <div style="font-size:9px;color:#3a5a3a;padding:3px 5px;background:#0a1a0a;border:1px solid #1a3a1a;border-radius:3px;margin-bottom:4px">Separates Icon-Element · X/Y = Mittelpunkt</div>
       </div>
 
       <!-- Shape row -->
@@ -312,41 +326,43 @@ input[type=range]{flex:1;accent-color:#555;height:3px}
         </div>
       </div>
 
-      <!-- Text fields -->
+      <!-- Text & Icon section (shown for text fields AND icon-only fields) -->
       <div id="textSection">
-        <div class="lbl">Schrift</div>
-        <select id="fFont" onchange="updFont(this.value)" style="width:100%">
-          <optgroup label="Text">
-            <option value="FONT_TINY">Tiny (~16px)</option>
-            <option value="FONT_SMALL">Small (~22px)</option>
-            <option value="FONT_MEDIUM">Medium (~32px)</option>
-            <option value="FONT_LARGE">Large (~46px)</option>
-          </optgroup>
-          <optgroup label="Zahlen">
-            <option value="FONT_NUMBER_MILD">Number Mild (~50px)</option>
-            <option value="FONT_NUMBER_MEDIUM">Number Medium (~72px)</option>
-            <option value="FONT_NUMBER_HOT">Number Hot (~96px)</option>
-            <option value="FONT_NUMBER_THAI_HOT">Number Thai Hot (~120px)</option>
-          </optgroup>
-        </select>
-        <div style="font-size:9px;color:#2a2a2a;padding:2px 0">Grösse automatisch</div>
+        <div id="fontSection">
+          <div class="lbl">Schrift</div>
+          <select id="fFont" onchange="updFont(this.value)" style="width:100%">
+            <optgroup label="Text">
+              <option value="FONT_TINY">Tiny (~16px)</option>
+              <option value="FONT_SMALL">Small (~22px)</option>
+              <option value="FONT_MEDIUM">Medium (~32px)</option>
+              <option value="FONT_LARGE">Large (~46px)</option>
+            </optgroup>
+            <optgroup label="Zahlen">
+              <option value="FONT_NUMBER_MILD">Number Mild (~50px)</option>
+              <option value="FONT_NUMBER_MEDIUM">Number Medium (~72px)</option>
+              <option value="FONT_NUMBER_HOT">Number Hot (~96px)</option>
+              <option value="FONT_NUMBER_THAI_HOT">Number Thai Hot (~120px)</option>
+            </optgroup>
+          </select>
+          <div style="font-size:9px;color:#2a2a2a;padding:2px 0">Grösse automatisch</div>
 
-        <div class="lbl" style="margin-top:2px">Textfarbe</div>
-        <div class="row">
-          <input type="text" id="fCol" maxlength="7" oninput="updCol('color',this.value)" style="flex:1">
-          <div class="sw" id="fColSw" onclick="g('fColNat').click()"></div>
-          <input type="color" id="fColNat" style="display:none" oninput="g('fCol').value=this.value;updCol('color',this.value)">
-        </div>
+          <div class="lbl" style="margin-top:2px">Textfarbe</div>
+          <div class="row">
+            <input type="text" id="fCol" maxlength="7" oninput="updCol('color',this.value)" style="flex:1">
+            <div class="sw" id="fColSw" onclick="g('fColNat').click()"></div>
+            <input type="color" id="fColNat" style="display:none" oninput="g('fCol').value=this.value;updCol('color',this.value)">
+          </div>
 
-        <div class="lbl">Kontur (Outline)</div>
-        <div class="row">
-          <input type="text" id="fOutline" maxlength="7" oninput="updCol('outlineColor',this.value)" style="flex:1" placeholder="leer=keine">
-          <div class="sw" id="fOutlineSw" onclick="g('fOutlineNat').click()"></div>
-          <input type="color" id="fOutlineNat" style="display:none" oninput="g('fOutline').value=this.value;updCol('outlineColor',this.value)">
-        </div>
-        <div class="row">
-          <input type="range" id="fOutlineW" min="1" max="5" value="1" oninput="g('fOutlineWN').value=this.value;upd('outlineWidth',+this.value)" style="flex:1">
-          <input type="number" id="fOutlineWN" min="1" max="5" style="width:36px" oninput="g('fOutlineW').value=this.value;upd('outlineWidth',+this.value)">
+          <div class="lbl">Kontur (Outline)</div>
+          <div class="row">
+            <input type="text" id="fOutline" maxlength="7" oninput="updCol('outlineColor',this.value)" style="flex:1" placeholder="leer=keine">
+            <div class="sw" id="fOutlineSw" onclick="g('fOutlineNat').click()"></div>
+            <input type="color" id="fOutlineNat" style="display:none" oninput="g('fOutline').value=this.value;updCol('outlineColor',this.value)">
+          </div>
+          <div class="row">
+            <input type="range" id="fOutlineW" min="1" max="5" value="1" oninput="g('fOutlineWN').value=this.value;upd('outlineWidth',+this.value)" style="flex:1">
+            <input type="number" id="fOutlineWN" min="1" max="5" style="width:36px" oninput="g('fOutlineW').value=this.value;upd('outlineWidth',+this.value)">
+          </div>
         </div>
 
         <div class="lbl">Symbol</div>
@@ -360,13 +376,17 @@ input[type=range]{flex:1;accent-color:#555;height:3px}
           <input type="text" id="fIco" maxlength="7" oninput="updCol('iconColor',this.value)" style="flex:1">
           <div class="sw" id="fIcoSw" onclick="g('fIcoNat').click()"></div>
           <input type="color" id="fIcoNat" style="display:none" oninput="g('fIco').value=this.value;updCol('iconColor',this.value)">
-          <button class="btn sm" id="linkBtn" onclick="linkIcon()">🔗</button>
+          <!-- link button only shown for text fields -->
+          <button class="btn sm" id="linkBtn" onclick="linkIcon()" title="Farbe mit Textfarbe verknüpfen">🔗</button>
         </div>
-        <div class="lbl">Symbol-Position</div>
-        <div class="seg" id="iconPosSeg">
-          <button onclick="upd('iconPos','left');segOn(this)">Links</button>
-          <button class="on" onclick="upd('iconPos','none');segOn(this)">Kein</button>
-          <button onclick="upd('iconPos','right');segOn(this)">Rechts</button>
+        <!-- icon position only shown for text fields (not icon-only) -->
+        <div id="iconPosSection">
+          <div class="lbl">Symbol-Position</div>
+          <div class="seg" id="iconPosSeg">
+            <button onclick="upd('iconPos','left');segOn(this)">Links</button>
+            <button class="on" onclick="upd('iconPos','none');segOn(this)">Kein</button>
+            <button onclick="upd('iconPos','right');segOn(this)">Rechts</button>
+          </div>
         </div>
         <div class="lbl" style="margin-top:3px">Symbolgrösse</div>
         <div class="row">
@@ -394,23 +414,11 @@ input[type=range]{flex:1;accent-color:#555;height:3px}
     <div class="lbl">Projektname</div>
     <input type="text" id="projName" value="MWF1" oninput="updateCode()">
     <div class="sec">Gerät</div>
-    <select id="devSel" style="width:100%" onchange="updateCode()">
-      <option value="fr265">Forerunner 265 (416×416)</option>
-      <option value="fr265s">Forerunner 265S (360×360)</option>
-      <option value="fr255">Forerunner 255 (260×260)</option>
-      <option value="fr745">Forerunner 745 (240×240)</option>
-      <option value="fr955">Forerunner 955 (260×260)</option>
-      <option value="fenix7">Fenix 7 (280×280)</option>
-      <option value="fenix6">Fenix 6 (260×260)</option>
-      <option value="epix2">Epix Gen 2 (416×416)</option>
-      <option value="venu2">Venu 2 (390×390)</option>
-    </select>
+    <div style="font-size:10px;color:#4a7a4a;padding:4px 6px;background:#0a140a;border:1px solid #1a3a1a;border-radius:4px">Forerunner 265 · 416×416px</div>
+    <div style="font-size:9px;color:#222;margin-top:2px">Andere Modelle werden nicht unterstützt.</div>
     <div class="sec">Schriften</div>
-    <div style="font-size:9px;color:#2a2a2a;line-height:1.6">Garmin System-Fonts werden verwendet — kein Upload nötig. Im Feld-Editor auswählen.</div>
-    <div style="font-size:9px;color:#222;line-height:1.8">
-      Tiny · Small · Medium · Large<br>
-      Number Mild · Medium · Hot · Thai Hot
-    </div>
+    <div style="font-size:9px;color:#2a2a2a;line-height:1.6">Garmin System-Fonts werden verwendet — kein Upload nötig.</div>
+    <div style="font-size:9px;color:#222;line-height:1.8">Tiny · Small · Medium · Large<br>Number Mild · Medium · Hot · Thai Hot</div>
   </div>
 
   <!-- BG -->
@@ -422,10 +430,11 @@ input[type=range]{flex:1;accent-color:#555;height:3px}
       <input type="color" id="bgNat" value="#000000" style="display:none" oninput="g('bgHex').value=this.value;applyBgCol(this.value)">
     </div>
     <div class="sec">Hintergrundbild</div>
-    <div class="lbl" style="color:#2a2a2a">PNG · 8-Bit · 416×416px für FR265</div>
+    <div class="lbl" style="color:#2a2a2a">PNG · 8-Bit · 416×416px · wird im Assets-ZIP gespeichert</div>
     <div class="upl" onclick="g('bgUp').click()">↑ Bild hochladen<div id="bgFn" style="margin-top:2px;font-size:9px;color:#2a2a2a">Cloud-Speicherung</div></div>
     <input type="file" id="bgUp" accept="image/*" style="display:none" onchange="uploadBg(this)">
     <button class="btn" onclick="clearBg()">Bild entfernen</button>
+    <div class="lbl" style="color:#333;font-size:9px;margin-top:2px">⚠ Im Assets-ZIP wird background.png automatisch eingepackt.</div>
     <div class="sec">Abdunklung</div>
     <div class="row">
       <input type="range" id="dimR" min="0" max="90" value="0" step="5" oninput="applyDim(this.value)" style="flex:1">
@@ -441,7 +450,7 @@ input[type=range]{flex:1;accent-color:#555;height:3px}
       <button class="btn" onclick="copyCode()" id="cpBtn" style="flex:1">Kopieren</button>
       <button class="btn acc" onclick="dlCode()">↓ .mc</button>
     </div>
-    <button class="btn" onclick="dlAssets()" style="width:100%;margin-top:2px;border-color:#2a4a2a;color:#4a8a4a">↓ Assets ZIP</button>
+    <button class="btn" onclick="dlAssets()" style="width:100%;margin-top:2px;border-color:#2a4a2a;color:#4a8a4a">↓ Assets ZIP (inkl. background.png)</button>
   </div>
 </div>
 </div>
@@ -449,6 +458,8 @@ input[type=range]{flex:1;accent-color:#555;height:3px}
 <div class="toast" id="toast"></div>
 
 <script>
+// ── CONFIG ───────────────────────────────────────────────────────
+// Supabase anon key ist safe für GitHub Pages wenn RLS aktiviert ist
 const SB_URL='https://ahcdqjpmtpqtzolymxhi.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoY2RxanBtdHBxdHpvbHlteGhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4Mzg4MjYsImV4cCI6MjA5NjQxNDgyNn0.HEIFscMe_EMWQ90v6ghhWm0OeafZEzrljX3rvrvnDoI';
 let sb=null;
@@ -460,7 +471,6 @@ function initSupabase(){
     sb.auth.getSession().then(({data:{session}})=>{
       if(session){CU=session.user;onLogin();}
     });
-    console.log('Supabase OK');
   }catch(e){
     console.error('Supabase init failed:',e);
     const note=document.querySelector('.auth-note');
@@ -469,26 +479,31 @@ function initSupabase(){
 }
 
 // ── CONSTANTS ────────────────────────────────────────────────────
-const FONT_SIZES={FONT_TINY:20,FONT_SMALL:26,FONT_MEDIUM:36,FONT_LARGE:52,FONT_NUMBER_MILD:58,FONT_NUMBER_MEDIUM:82,FONT_NUMBER_HOT:108,FONT_NUMBER_THAI_HOT:134};
+const SCREEN=416; // FR265 only
+const FONT_SIZES={FONT_TINY:16,FONT_SMALL:22,FONT_MEDIUM:32,FONT_LARGE:46,FONT_NUMBER_MILD:50,FONT_NUMBER_MEDIUM:72,FONT_NUMBER_HOT:96,FONT_NUMBER_THAI_HOT:120};
 const FONT_MIGRATE={INTER_THIN:'FONT_SMALL',INTER_REG:'FONT_MEDIUM',INTER_BOLD:'FONT_NUMBER_HOT'};
 const SHAPES=['rect','circle'];
-const LABELS={template:'Freier Text',time:'Uhrzeit',seconds:'Sekunden',weekday:'Wochentag',date:'Datum',month:'Monat',year:'Jahr',hr:'Herzfrequenz',altitude:'Höhenmeter',steps:'Schritte',battery:'Batterie',calories:'Kalorien',distance:'Distanz',floors:'Stockwerke',stress:'Stress',rect:'Rechteck',circle:'Kreis'};
-const DFLT_COL={template:'#FFFFFF',time:'#FFFFFF',seconds:'#888888',weekday:'#BBBBBB',date:'#FFFFFF',month:'#999999',year:'#666666',hr:'#FF4444',altitude:'#44AAFF',steps:'#88EE88',battery:'#FFDD44',calories:'#FF8844',distance:'#44DDAA',floors:'#AA88FF',stress:'#FF6688',rect:'#FFFFFF',circle:'#FFFFFF'};
+const LABELS={template:'Freier Text',time:'Uhrzeit',seconds:'Sekunden',weekday:'Wochentag',date:'Datum',month:'Monat',year:'Jahr',hr:'Herzfrequenz',altitude:'Höhenmeter',steps:'Schritte',battery:'Batterie',calories:'Kalorien',distance:'Distanz',floors:'Stockwerke',stress:'Stress',icon:'Icon',rect:'Rechteck',circle:'Kreis'};
+const DFLT_COL={template:'#FFFFFF',time:'#FFFFFF',seconds:'#888888',weekday:'#BBBBBB',date:'#FFFFFF',month:'#999999',year:'#666666',hr:'#FF4444',altitude:'#44AAFF',steps:'#88EE88',battery:'#FFDD44',calories:'#FF8844',distance:'#44DDAA',floors:'#AA88FF',stress:'#FF6688',icon:'#FFFFFF',rect:'#FFFFFF',circle:'#FFFFFF'};
 const ICONS_DEF={hr:'♥',altitude:'▲',battery:'⚡',steps:'◎',calories:'🔥',distance:'⬤',floors:'⬆',stress:'◈'};
 const BUILTIN_ICONS=['♥','▲','⚡','◎','🔥','↑','↓','◈','★','⬤','◆','▶','●','■','✦','⊕','⊗','≈','∞','◐'];
 const SAMPLE_VALS={time:'14:23',seconds:'07',weekday:'So',date:'07.06',month:'Juni',year:'2026',hr:'72',altitude:'437',steps:'6284',battery:'85',calories:'1840',distance:'8.4',floors:'12',stress:'34'};
+// note: 'c' was duplicated in original, 'k' also — fixed here
 const TPL_VARS=[['%H','Std24'],['%h','Std12'],['%M','Min'],['%S','Sek'],['%p','AM/PM'],['%d','Tag'],['%e','Tag(no0)'],['%m','Monat#'],['%b','Jun'],['%B','Juni'],['%y','26'],['%Y','2026'],['%w','So'],['%W','Sonntag'],['%r','HR'],['%a','Höhe'],['%s','Schritte'],['%t','Batt%'],['%c','Kal'],['%k','km'],['%%','%']];
 const SAMPLE_NOW={H:'14',h:'2',M:'23',S:'07',p:'PM',d:'07',e:'7',m:'06',b:'Jun',B:'Juni',y:'26',Y:'2026',w:'So',W:'Sonntag',r:'72',a:'437',s:'6284',t:'85',c:'1840',k:'8.4'};
 
 let fields=[
-  {id:0,type:'time',template:'',x:208,y:160,size:96,color:'#FFFFFF',iconColor:'#FFFFFF',iconLinked:false,font:'FONT_NUMBER_HOT',icon:'',iconPos:'none',iconSize:20,customIcon:null,align:'center',outlineColor:'',outlineWidth:1},
-  {id:1,type:'template',template:'%w %e.%m.%Y',x:208,y:56,size:32,color:'#BBBBBB',iconColor:'#FFFFFF',iconLinked:false,font:'FONT_MEDIUM',icon:'',iconPos:'none',iconSize:16,customIcon:null,align:'center',outlineColor:'',outlineWidth:1},
-  {id:2,type:'hr',template:'',x:130,y:300,size:32,color:'#FF4444',iconColor:'#FF4444',iconLinked:true,font:'FONT_MEDIUM',icon:'♥',iconPos:'left',iconSize:22,customIcon:null,align:'center',outlineColor:'',outlineWidth:1},
-  {id:3,type:'altitude',template:'',x:290,y:270,size:32,color:'#44AAFF',iconColor:'#44AAFF',iconLinked:true,font:'FONT_MEDIUM',icon:'▲',iconPos:'left',iconSize:22,customIcon:null,align:'center',outlineColor:'',outlineWidth:1},
+  {id:0,type:'time',template:'',x:208,y:160,color:'#FFFFFF',iconColor:'#FFFFFF',iconLinked:false,font:'FONT_NUMBER_HOT',icon:'',iconPos:'none',iconSize:20,customIcon:null,align:'center',valign:'top',outlineColor:'',outlineWidth:1},
+  {id:1,type:'template',template:'%w %e.%m.%Y',x:208,y:56,color:'#BBBBBB',iconColor:'#FFFFFF',iconLinked:false,font:'FONT_MEDIUM',icon:'',iconPos:'none',iconSize:16,customIcon:null,align:'center',valign:'top',outlineColor:'',outlineWidth:1},
+  {id:2,type:'hr',template:'',x:152,y:308,color:'#FF4444',iconColor:'#FF4444',iconLinked:true,font:'FONT_MEDIUM',icon:'',iconPos:'none',iconSize:22,customIcon:null,align:'center',valign:'top',outlineColor:'',outlineWidth:1},
+  {id:3,type:'icon',template:'',x:122,y:308,color:'#FF4444',iconColor:'#FF4444',iconLinked:false,font:'FONT_MEDIUM',icon:'♥',iconPos:'none',iconSize:22,customIcon:null,align:'center',valign:'top',outlineColor:'',outlineWidth:1},
+  {id:4,type:'altitude',template:'',x:278,y:308,color:'#44AAFF',iconColor:'#44AAFF',iconLinked:true,font:'FONT_MEDIUM',icon:'',iconPos:'none',iconSize:22,customIcon:null,align:'center',valign:'top',outlineColor:'',outlineWidth:1},
+  {id:5,type:'icon',template:'',x:248,y:308,color:'#44AAFF',iconColor:'#44AAFF',iconLinked:false,font:'FONT_MEDIUM',icon:'▲',iconPos:'none',iconSize:22,customIcon:null,align:'center',valign:'top',outlineColor:'',outlineWidth:1},
 ];
-let nextId=4;
+let nextId=6;
 let selId=null;
 let bgUrl=null;
+let bgBlob=null; // raw file for ZIP download
 let savedIcons=[];
 let curDesignId=null;
 
@@ -499,10 +514,17 @@ function toast(msg,err=false){const t=g('toast');t.textContent=msg;t.className='
 
 // ── AUTH ─────────────────────────────────────────────────────────
 let authMode='login';
-function aTab(mode,btn){authMode=mode;document.querySelectorAll('.auth-tab').forEach(t=>t.classList.remove('on'));btn.classList.add('on');g('aBtn').textContent=mode==='login'?'Login':'Registrieren';g('aPw2Row').style.display=mode==='signup'?'':'none';g('aErr').textContent='';}
+function aTab(mode,btn){
+  authMode=mode;
+  document.querySelectorAll('.auth-tab').forEach(t=>t.classList.remove('on'));
+  btn.classList.add('on');
+  g('aBtn').textContent=mode==='login'?'Login':'Registrieren';
+  g('aPw2Row').style.display=mode==='signup'?'':'none';
+  g('aErr').textContent='';
+}
 
 async function doAuth(){
-  if(!sb){g('aErr').textContent='Verbindung wird aufgebaut, bitte warten...';initSupabase();return;}
+  if(!sb){g('aErr').textContent='Verbindung wird aufgebaut...';initSupabase();return;}
   const email=g('aEmail').value.trim(),pw=g('aPw').value;
   if(!email||!pw){g('aErr').textContent='E-Mail und Passwort erforderlich';return;}
   g('aBtn').innerHTML='<span class="sp"></span>...';g('aErr').textContent='';
@@ -523,19 +545,18 @@ async function doAuth(){
 function onLogin(){g('authOverlay').style.display='none';g('userEmail').textContent=CU.email;loadDesignList();}
 async function doLogout(){await sb.auth.signOut();location.reload();}
 
-
 // ── DESIGN SIDEBAR ───────────────────────────────────────────────
 function toggleDsb(){g('dsb').classList.toggle('open');}
 
 async function loadDesignList(){
   if(!CU)return;
-  const{data}=await sb.from('gwd_designs').select('id,name,device,updated_at').eq('user_id',CU.id).order('updated_at',{ascending:false});
+  const{data}=await sb.from('gwd_designs').select('id,name,updated_at').eq('user_id',CU.id).order('updated_at',{ascending:false});
   const list=g('dsbList');list.innerHTML='';
   if(!data||!data.length){list.innerHTML='<div style="font-size:9px;color:#222;padding:6px">Keine Designs</div>';return;}
   data.forEach(d=>{
     const el=document.createElement('div');el.className='dsb-item';
     const dt=new Date(d.updated_at).toLocaleDateString('de-CH');
-    el.innerHTML=`<div class="di-name">${d.name}<span class="di-del" onclick="event.stopPropagation();delDesign('${d.id}')">× del</span></div><div class="di-meta">${d.device} · ${dt}</div>`;
+    el.innerHTML=`<div class="di-name">${d.name}<span class="di-del" onclick="event.stopPropagation();delDesign('${d.id}')">× del</span></div><div class="di-meta">FR265 · ${dt}</div>`;
     el.onclick=()=>loadDesign(d.id);list.appendChild(el);
   });
 }
@@ -543,7 +564,7 @@ async function loadDesignList(){
 async function saveDesign(){
   if(!CU){toast('Nicht eingeloggt',true);return;}
   const btn=g('saveBtn');btn.innerHTML='<span class="sp"></span>';
-  const payload={user_id:CU.id,name:g('designName').value||'Design',device:g('devSel').value,project_name:g('projName').value||'MWF1',bg_color:g('bgHex').value,bg_image_url:bgUrl||null,dim_value:+g('dimR').value,fields};
+  const payload={user_id:CU.id,name:g('designName').value||'Design',device:'fr265',project_name:g('projName').value||'MWF1',bg_color:g('bgHex').value,bg_image_url:bgUrl||null,dim_value:+g('dimR').value,fields};
   let res;
   if(curDesignId){res=await sb.from('gwd_designs').update(payload).eq('id',curDesignId);}
   else{res=await sb.from('gwd_designs').insert(payload).select('id').single();if(res.data)curDesignId=res.data.id;}
@@ -557,14 +578,21 @@ async function loadDesign(id){
   if(error||!data){toast('Ladefehler',true);return;}
   curDesignId=data.id;
   g('designName').value=data.name;
-  g('devSel').value=data.device||'fr265';
   g('projName').value=data.project_name||'MWF1';
   g('bgHex').value=data.bg_color||'#000000';
   applyBgCol(data.bg_color||'#000000');
   g('dimR').value=data.dim_value||0;applyDim(data.dim_value||0);
-  if(data.bg_image_url){bgUrl=data.bg_image_url;g('wbg').style.backgroundImage=`url(${bgUrl})`;g('wbg').style.backgroundSize='cover';g('bgFn').textContent='Bild geladen';}
-  // migrate old font names
-  fields=(data.fields||[]).map(f=>({...f,font:FONT_MIGRATE[f.font]||f.font}));
+  if(data.bg_image_url){
+    bgUrl=data.bg_image_url;bgBlob=null; // loaded from URL, no local blob
+    g('wbg').style.cssText=`background-image:url(${bgUrl});background-size:cover;background-position:center`;
+    g('bgFn').textContent='Bild geladen';
+  } else {
+    bgUrl=null;bgBlob=null;
+    g('wbg').style.backgroundImage='';
+    g('bgFn').textContent='Cloud-Speicherung';
+  }
+  // migrate old font names and old icon-in-text fields
+  fields=(data.fields||[]).map(f=>({...f,font:FONT_MIGRATE[f.font]||f.font,valign:f.valign||'top'}));
   nextId=fields.length?Math.max(...fields.map(f=>f.id))+1:0;
   selId=null;g('nosel').style.display='';g('fEd').style.display='none';
   render();updateCode();toggleDsb();toast('Geladen ✓');
@@ -580,14 +608,17 @@ async function delDesign(id){
 function newDesign(){
   curDesignId=null;g('designName').value='Mein Design';
   fields=[
-    {id:0,type:'time',template:'',x:208,y:160,size:96,color:'#FFFFFF',iconColor:'#FFFFFF',iconLinked:false,font:'FONT_NUMBER_HOT',icon:'',iconPos:'none',iconSize:20,customIcon:null,align:'center',outlineColor:'',outlineWidth:1},
-    {id:1,type:'template',template:'%w %e.%m.%Y',x:208,y:56,size:32,color:'#BBBBBB',iconColor:'#FFFFFF',iconLinked:false,font:'FONT_MEDIUM',icon:'',iconPos:'none',iconSize:16,customIcon:null,align:'center',outlineColor:'',outlineWidth:1},
-    {id:2,type:'hr',template:'',x:130,y:300,size:32,color:'#FF4444',iconColor:'#FF4444',iconLinked:true,font:'FONT_MEDIUM',icon:'♥',iconPos:'left',iconSize:22,customIcon:null,align:'center',outlineColor:'',outlineWidth:1},
-    {id:3,type:'altitude',template:'',x:290,y:270,size:32,color:'#44AAFF',iconColor:'#44AAFF',iconLinked:true,font:'FONT_MEDIUM',icon:'▲',iconPos:'left',iconSize:22,customIcon:null,align:'center',outlineColor:'',outlineWidth:1},
+    {id:0,type:'time',template:'',x:208,y:160,color:'#FFFFFF',iconColor:'#FFFFFF',iconLinked:false,font:'FONT_NUMBER_HOT',icon:'',iconPos:'none',iconSize:20,customIcon:null,align:'center',valign:'top',outlineColor:'',outlineWidth:1},
+    {id:1,type:'template',template:'%w %e.%m.%Y',x:208,y:56,color:'#BBBBBB',iconColor:'#FFFFFF',iconLinked:false,font:'FONT_MEDIUM',icon:'',iconPos:'none',iconSize:16,customIcon:null,align:'center',valign:'top',outlineColor:'',outlineWidth:1},
+    {id:2,type:'hr',template:'',x:152,y:308,color:'#FF4444',iconColor:'#FF4444',iconLinked:true,font:'FONT_MEDIUM',icon:'',iconPos:'none',iconSize:22,customIcon:null,align:'center',valign:'top',outlineColor:'',outlineWidth:1},
+    {id:3,type:'icon',template:'',x:122,y:308,color:'#FF4444',iconColor:'#FF4444',iconLinked:false,font:'FONT_MEDIUM',icon:'♥',iconPos:'none',iconSize:22,customIcon:null,align:'center',valign:'top',outlineColor:'',outlineWidth:1},
+    {id:4,type:'altitude',template:'',x:278,y:308,color:'#44AAFF',iconColor:'#44AAFF',iconLinked:true,font:'FONT_MEDIUM',icon:'',iconPos:'none',iconSize:22,customIcon:null,align:'center',valign:'top',outlineColor:'',outlineWidth:1},
+    {id:5,type:'icon',template:'',x:248,y:308,color:'#44AAFF',iconColor:'#44AAFF',iconLinked:false,font:'FONT_MEDIUM',icon:'▲',iconPos:'none',iconSize:22,customIcon:null,align:'center',valign:'top',outlineColor:'',outlineWidth:1},
   ];
-  nextId=4;selId=null;bgUrl=null;
-  g('wbg').style.backgroundImage='';g('wbg').style.background='#000';
+  nextId=6;selId=null;bgUrl=null;bgBlob=null;
+  g('wbg').style.cssText='background-image:none;background:#000';
   g('bgHex').value='#000000';g('dimR').value=0;applyDim(0);
+  g('bgFn').textContent='Cloud-Speicherung';
   g('nosel').style.display='';g('fEd').style.display='none';
   render();updateCode();toggleDsb();
 }
@@ -604,32 +635,60 @@ function render(){
   const c=g('wfl');c.innerHTML='';
   fields.forEach(f=>{
     if(SHAPES.includes(f.type)){renderShape(c,f);return;}
-    const el=document.createElement('div');
-    el.className='wf'+(f.id===selId?' sel':'');
-    el.dataset.id=f.id;
-    // X = center of text (for center-aligned), Y = top of text
-    el.style.left=f.x+'px';
-    el.style.top=f.y+'px';
-    const px=getFontPx(f.font);
-    el.style.fontSize=px+'px';
-    el.style.fontWeight=f.font.includes('HOT')||f.font==='FONT_LARGE'?'700':f.font==='FONT_TINY'?'300':'400';
-    el.style.fontFamily=f.font.includes('NUMBER')?"'Courier New',monospace":"'Arial',sans-serif";
-    el.style.color=f.color;
-    el.style.lineHeight='1.1';
-    if(f.outlineColor&&f.outlineColor.length===7){
-      const ow=f.outlineWidth||1;
-      el.style.textShadow=`-${ow}px -${ow}px 0 ${f.outlineColor},${ow}px -${ow}px 0 ${f.outlineColor},-${ow}px ${ow}px 0 ${f.outlineColor},${ow}px ${ow}px 0 ${f.outlineColor}`;
-    }
-    const iconColor=f.iconLinked?f.color:f.iconColor;
-    if(f.iconPos==='left'&&f.icon){const ic=mkIcon(f,iconColor);if(ic)el.appendChild(ic);}
-    const tx=document.createElement('span');tx.className='wft';tx.textContent=getSample(f);
-    el.appendChild(tx);
-    if(f.iconPos==='right'&&f.icon){const ic=mkIcon(f,iconColor);if(ic)el.appendChild(ic);}
-    el.addEventListener('mousedown',e=>{selectField(f.id);startDrag(e,f.id);});
-    el.addEventListener('click',e=>{e.stopPropagation();selectField(f.id);});
-    c.appendChild(el);
+    if(f.type==='icon'){renderIconEl(c,f);return;}
+    renderTextField(c,f);
   });
   renderList();
+}
+
+function renderTextField(c,f){
+  const el=document.createElement('div');
+  el.className='wf'+(f.id===selId?' sel':'');
+  el.dataset.id=f.id;
+  const px=getFontPx(f.font);
+  // X = center of element, Y = top edge (matches Garmin drawText with Y_TOP)
+  el.style.left=f.x+'px';
+  el.style.top=f.y+'px';
+  el.style.fontSize=px+'px';
+  el.style.fontWeight=f.font.includes('HOT')||f.font==='FONT_LARGE'?'700':f.font==='FONT_TINY'?'300':'400';
+  el.style.fontFamily=f.font.includes('NUMBER')?"'Courier New',monospace":"'Arial',sans-serif";
+  el.style.color=f.color;
+  el.style.lineHeight='1';
+  // vertical centering offset for valign='vcenter' — shift up by half font height
+  if(f.valign==='vcenter'){
+    el.style.transform=`translateX(-50%) translateY(-50%)`;
+  }
+  if(f.outlineColor&&f.outlineColor.length===7){
+    const ow=f.outlineWidth||1;
+    el.style.textShadow=`-${ow}px -${ow}px 0 ${f.outlineColor},${ow}px -${ow}px 0 ${f.outlineColor},-${ow}px ${ow}px 0 ${f.outlineColor},${ow}px ${ow}px 0 ${f.outlineColor}`;
+  }
+  const tx=document.createElement('span');
+  tx.className='wft';
+  tx.textContent=getSample(f);
+  el.appendChild(tx);
+  el.addEventListener('mousedown',e=>{selectField(f.id);startDrag(e,f.id);});
+  el.addEventListener('touchstart',e=>{selectField(f.id);startDragTouch(e,f.id);},{passive:true});
+  el.addEventListener('click',e=>{e.stopPropagation();selectField(f.id);});
+  c.appendChild(el);
+}
+
+function renderIconEl(c,f){
+  const el=document.createElement('div');
+  el.className='wico'+(f.id===selId?' sel':'');
+  el.dataset.id=f.id;
+  // Icon element: X/Y = center
+  el.style.left=f.x+'px';
+  el.style.top=f.y+'px';
+  const sz=f.iconSize||22;
+  el.style.width=sz+'px';
+  el.style.height=sz+'px';
+  const iconColor=f.iconColor||'#FFFFFF';
+  const ic=mkIconNode(f,iconColor,sz);
+  if(ic)el.appendChild(ic);
+  el.addEventListener('mousedown',e=>{selectField(f.id);startDrag(e,f.id);});
+  el.addEventListener('touchstart',e=>{selectField(f.id);startDragTouch(e,f.id);},{passive:true});
+  el.addEventListener('click',e=>{e.stopPropagation();selectField(f.id);});
+  c.appendChild(el);
 }
 
 function renderShape(c,f){
@@ -640,13 +699,14 @@ function renderShape(c,f){
   el.style.cssText=`left:${f.x}px;top:${f.y}px;width:${w}px;height:${h}px;transform:translate(-50%,-50%);background:${f.fillColor||'rgba(255,255,255,.1)'};opacity:${(f.opacity||100)/100};border-radius:${f.type==='circle'?'50%':'0'};${f.strokeColor?`border:${f.strokeWidth||1}px solid ${f.strokeColor}`:'border:none'}`;
   const rh=document.createElement('div');rh.className='srh';rh.dataset.resize='1';el.appendChild(rh);
   el.addEventListener('mousedown',e=>{if(e.target.dataset.resize){startResizeShape(e,f.id);return;}selectField(f.id);startDrag(e,f.id);});
+  el.addEventListener('touchstart',e=>{selectField(f.id);startDragTouch(e,f.id);},{passive:true});
   el.addEventListener('click',e=>{e.stopPropagation();selectField(f.id);});
   c.appendChild(el);
 }
 
-function mkIcon(f,color){
-  const ic=document.createElement('span');
-  ic.style.cssText=`font-size:${f.iconSize}px;color:${color};flex-shrink:0;line-height:1;vertical-align:top`;
+// Build an icon node (span or img) for preview
+function mkIconNode(f,color,size){
+  const sz=size||f.iconSize||22;
   if(f.customIcon){
     if(f.customIcon.includes('image/svg')||f.customIcon.startsWith('data:image/svg')){
       try{
@@ -655,25 +715,45 @@ function mkIcon(f,color){
         const svg=doc.documentElement;
         svg.querySelectorAll('[fill]').forEach(el=>{if(el.getAttribute('fill')!=='none')el.setAttribute('fill',color);});
         svg.querySelectorAll('[stroke]').forEach(el=>{if(el.getAttribute('stroke')!=='none')el.setAttribute('stroke',color);});
-        svg.setAttribute('width',f.iconSize);svg.setAttribute('height',f.iconSize);
+        svg.setAttribute('width',sz);svg.setAttribute('height',sz);
         const blob=new Blob([svg.outerHTML],{type:'image/svg+xml'});
-        const img=document.createElement('img');img.src=URL.createObjectURL(blob);img.style.cssText=`width:${f.iconSize}px;height:${f.iconSize}px;vertical-align:top`;
-        ic.appendChild(img);
-      }catch(e){const img=document.createElement('img');img.src=f.customIcon;img.style.cssText=`width:${f.iconSize}px;height:${f.iconSize}px;vertical-align:top`;ic.appendChild(img);}
+        const img=document.createElement('img');
+        img.src=URL.createObjectURL(blob);
+        img.style.cssText=`width:${sz}px;height:${sz}px;display:block`;
+        return img;
+      }catch(e){
+        const img=document.createElement('img');img.src=f.customIcon;
+        img.style.cssText=`width:${sz}px;height:${sz}px;display:block`;
+        return img;
+      }
     } else {
-      const img=document.createElement('img');img.src=f.customIcon;img.style.cssText=`width:${f.iconSize}px;height:${f.iconSize}px;vertical-align:top`;ic.appendChild(img);
+      const img=document.createElement('img');img.src=f.customIcon;
+      img.style.cssText=`width:${sz}px;height:${sz}px;display:block`;
+      return img;
     }
-  } else {ic.textContent=f.icon;}
-  return ic;
+  } else if(f.icon&&f.icon!==''){
+    const ic=document.createElement('span');
+    ic.style.cssText=`font-size:${sz}px;color:${color};line-height:1;display:block`;
+    ic.textContent=f.icon;
+    return ic;
+  }
+  return null;
 }
 
 function renderList(){
   const l=g('fieldList');l.innerHTML='';
   fields.forEach(f=>{
-    const el=document.createElement('div');el.className='fi'+(f.id===selId?' sel':'');
-    const lbl=f.type==='template'?('✦ '+(f.template||'Freier Text').slice(0,18)):LABELS[f.type]||f.type;
-    const info=SHAPES.includes(f.type)?`${f.w||40}×${f.h||40}`:f.font.replace('FONT_','').replace('NUMBER_','N.');
-    el.innerHTML=`<div class="dot" style="background:${SHAPES.includes(f.type)?(f.fillColor||'#555'):f.color}"></div><span class="fn">${lbl}</span><span class="fi2">${info}</span>`;
+    const el=document.createElement('div');
+    const isIco=f.type==='icon';
+    el.className='fi'+(f.id===selId?' sel':'')+(isIco?' ico-field':'');
+    const lbl=f.type==='template'?('✦ '+(f.template||'Freier Text').slice(0,18)):
+              f.type==='icon'?('◉ '+(f.icon||'Icon')):
+              LABELS[f.type]||f.type;
+    const info=SHAPES.includes(f.type)?`${f.w||40}×${f.h||40}`:
+               f.type==='icon'?`${f.iconSize||22}px`:
+               f.font.replace('FONT_','').replace('NUMBER_','N.');
+    const dotColor=SHAPES.includes(f.type)?(f.fillColor||'#555'):(f.type==='icon'?(f.iconColor||'#888'):f.color);
+    el.innerHTML=`<div class="dot" style="background:${dotColor}"></div><span class="fn">${lbl}</span><span class="fi2">${info}</span>`;
     el.onclick=()=>selectField(f.id);l.appendChild(el);
   });
 }
@@ -685,12 +765,20 @@ function selectField(id){
   if(!f){g('nosel').style.display='';g('fEd').style.display='none';return;}
   g('nosel').style.display='none';g('fEd').style.display='flex';
   g('edTitle').textContent=(LABELS[f.type]||f.type)+' bearbeiten';
+
   const isShape=SHAPES.includes(f.type);
   const isTpl=f.type==='template';
+  const isIconOnly=f.type==='icon';
+
   g('tplRow').style.display=isTpl?'':'none';
-  g('typeRow').style.display=(!isTpl&&!isShape)?'':'none';
+  g('typeRow').style.display=(!isTpl&&!isShape&&!isIconOnly)?'':'none';
+  g('iconOnlyRow').style.display=isIconOnly?'':'none';
   g('shapeRow').style.display=isShape?'':'none';
   g('textSection').style.display=isShape?'none':'';
+  g('fontSection').style.display=isIconOnly?'none':'';
+  g('iconPosSection').style.display=isIconOnly?'none':'';
+  g('linkBtn').style.display=isIconOnly?'none':'';
+
   if(isShape){
     g('fW').value=f.w||40;g('fH').value=f.h||40;
     setCol('fFill','fFillSw','fFillNat',f.fillColor||'#444444');
@@ -698,17 +786,25 @@ function selectField(id){
     g('fStrokeW').value=f.strokeWidth||1;g('fStrokeWN').value=f.strokeWidth||1;
     g('fOpacity').value=f.opacity||100;g('fOpacityN').textContent=(f.opacity||100)+'%';
   } else {
-    if(isTpl){g('fTpl').value=f.template||'';buildTplBtns();updTplPreview();setSegVal('tplAlignSeg',f.align||'center',['left','center','right']);}
-    else{g('fType').value=f.type;setSegVal('alignSeg',f.align||'center',['left','center','right']);}
-    g('fFont').value=f.font;
-    setCol('fCol','fColSw','fColNat',f.color);
-    setCol('fIco','fIcoSw','fIcoNat',f.iconLinked?f.color:(f.iconColor||'#FFFFFF'));
-    setCol('fOutline','fOutlineSw','fOutlineNat',f.outlineColor||'');
-    g('fOutlineW').value=f.outlineWidth||1;g('fOutlineWN').value=f.outlineWidth||1;
-    g('linkBtn').textContent=f.iconLinked?'🔗':'🔓';
+    if(isTpl){
+      g('fTpl').value=f.template||'';buildTplBtns();updTplPreview();
+      setSegVal('tplAlignSeg',f.align||'center',['left','center','right']);
+    } else if(!isIconOnly){
+      g('fType').value=f.type;
+      setSegVal('alignSeg',f.align||'center',['left','center','right']);
+      setSegVal('valignSeg',f.valign||'top',['top','vcenter']);
+    }
+    if(!isIconOnly){
+      g('fFont').value=f.font;
+      setCol('fCol','fColSw','fColNat',f.color);
+      setCol('fOutline','fOutlineSw','fOutlineNat',f.outlineColor||'');
+      g('fOutlineW').value=f.outlineWidth||1;g('fOutlineWN').value=f.outlineWidth||1;
+      g('linkBtn').textContent=f.iconLinked?'🔗':'🔓';
+    }
+    setCol('fIco','fIcoSw','fIcoNat',f.iconColor||'#FFFFFF');
+    if(!isIconOnly) setSegVal('iconPosSeg',f.iconPos||'none',['left','none','right']);
     g('fIcoSz').value=f.iconSize||16;g('fIcoSzN').value=f.iconSize||16;
     renderIconGrid(f);
-    setSegVal('iconPosSeg',f.iconPos||'none',['left','none','right']);
   }
   g('fX').value=f.x;g('fY').value=f.y;
   updateCode();
@@ -729,21 +825,25 @@ function segOn(btn){btn.parentElement.querySelectorAll('button').forEach(b=>b.cl
 function renderIconGrid(f){
   const grid=g('iconGrid');grid.innerHTML='';
   const nb=document.createElement('button');nb.className='ib'+(f.icon===''&&!f.customIcon?' on':'');nb.textContent='∅';
-  nb.onclick=()=>{upd('icon','');upd('customIcon',null);upd('iconPos','none');renderIconGrid(fields.find(x=>x.id===selId));};
+  nb.onclick=()=>{upd('icon','');upd('customIcon',null);if(f.type!=='icon')upd('iconPos','none');renderIconGrid(fields.find(x=>x.id===selId));};
   grid.appendChild(nb);
   BUILTIN_ICONS.forEach(ic=>{
     const b=document.createElement('button');b.className='ib'+(f.icon===ic&&!f.customIcon?' on':'');b.textContent=ic;
-    b.onclick=()=>{upd('icon',ic);upd('customIcon',null);if(fields.find(x=>x.id===selId).iconPos==='none')upd('iconPos','left');renderIconGrid(fields.find(x=>x.id===selId));};
+    b.onclick=()=>{
+      upd('icon',ic);upd('customIcon',null);
+      const cf=fields.find(x=>x.id===selId);
+      if(cf&&cf.type!=='icon'&&cf.iconPos==='none')upd('iconPos','left');
+      renderIconGrid(fields.find(x=>x.id===selId));
+    };
     grid.appendChild(b);
   });
   if(f.customIcon){
     const b=document.createElement('button');b.className='ib on';b.title='Aktives Symbol';b.style.position='relative';
     const img=document.createElement('img');img.src=f.customIcon;img.style.cssText='width:14px;height:14px;vertical-align:middle;filter:invert(1)';b.appendChild(img);
     const x=document.createElement('span');x.textContent='×';x.style.cssText='position:absolute;top:-3px;right:-2px;font-size:8px;color:#a55;cursor:pointer';
-    x.onclick=e=>{e.stopPropagation();upd('customIcon',null);upd('icon','');upd('iconPos','none');renderIconGrid(fields.find(f=>f.id===selId));};
+    x.onclick=e=>{e.stopPropagation();upd('customIcon',null);upd('icon','');if(f.type!=='icon')upd('iconPos','none');renderIconGrid(fields.find(f=>f.id===selId));};
     b.appendChild(x);grid.appendChild(b);
   }
-  // saved icons library
   if(savedIcons.length){
     const sep=document.createElement('div');sep.style.cssText='grid-column:1/-1;font-size:8px;color:#2a2a2a;text-transform:uppercase;padding:3px 0 1px;border-top:1px solid #1a1a1a';sep.textContent='Bibliothek';grid.appendChild(sep);
     savedIcons.forEach(si=>{
@@ -752,7 +852,7 @@ function renderIconGrid(f){
       const x=document.createElement('span');x.textContent='×';x.style.cssText='position:absolute;top:-3px;right:-2px;font-size:8px;color:#633;cursor:pointer';
       x.onclick=e=>{e.stopPropagation();savedIcons=savedIcons.filter(i=>i.url!==si.url);localStorage.setItem('gwd_icons',JSON.stringify(savedIcons));renderIconGrid(fields.find(f=>f.id===selId));};
       b.appendChild(x);
-      b.onclick=()=>{const cf=fields.find(f=>f.id===selId);if(!cf)return;cf.customIcon=si.url;cf.icon='CUSTOM';if(cf.iconPos==='none')cf.iconPos='left';render();selectField(selId);updateCode();};
+      b.onclick=()=>{const cf=fields.find(f=>f.id===selId);if(!cf)return;cf.customIcon=si.url;cf.icon='CUSTOM';if(cf.type!=='icon'&&cf.iconPos==='none')cf.iconPos='left';render();selectField(selId);updateCode();};
       grid.appendChild(b);
     });
   }
@@ -768,7 +868,7 @@ function loadIcon(inp){
     const f=fields.find(x=>x.id===selId);
     f.customIcon=url;f.icon='CUSTOM';
     if(!f.iconColor||f.iconColor==='#888')f.iconColor='#FFFFFF';
-    if(f.iconPos==='none')f.iconPos='left';
+    if(f.type!=='icon'&&f.iconPos==='none')f.iconPos='left';
     if(!savedIcons.find(i=>i.url===url)){savedIcons.push({name,url});localStorage.setItem('gwd_icons',JSON.stringify(savedIcons));}
     render();selectField(selId);updateCode();
   };
@@ -793,7 +893,7 @@ function upd(prop,val){
 function updFont(font){
   if(selId===null)return;
   const f=fields.find(x=>x.id===selId);if(!f)return;
-  f.font=font;f.size=FONT_SIZES[font]||32;
+  f.font=font;
   render();updateCode();
 }
 
@@ -802,22 +902,25 @@ function updCol(prop,val){
   const f=fields.find(x=>x.id===selId);if(!f)return;
   f[prop]=val;
   if(prop==='color'){g('fColSw').style.background=val;try{g('fColNat').value=val;}catch(e){}if(f.iconLinked){f.iconColor=val;setCol('fIco','fIcoSw','fIcoNat',val);}}
-  if(prop==='iconColor'){g('fIcoSw').style.background=val;try{g('fIcoNat').value=val;}catch(e){}};
-  if(prop==='outlineColor'){g('fOutlineSw').style.background=val||'transparent';try{if(val&&val.length===7)g('fOutlineNat').value=val;}catch(e){}};
-  if(prop==='fillColor'){g('fFillSw').style.background=val;try{g('fFillNat').value=val;}catch(e){}};
-  if(prop==='strokeColor'){g('fStrokeSw').style.background=val||'transparent';try{if(val&&val.length===7)g('fStrokeNat').value=val;}catch(e){}};
+  if(prop==='iconColor'){g('fIcoSw').style.background=val;try{g('fIcoNat').value=val;}catch(e){}}
+  if(prop==='outlineColor'){g('fOutlineSw').style.background=val||'transparent';try{if(val&&val.length===7)g('fOutlineNat').value=val;}catch(e){}}
+  if(prop==='fillColor'){g('fFillSw').style.background=val;try{g('fFillNat').value=val;}catch(e){}}
+  if(prop==='strokeColor'){g('fStrokeSw').style.background=val||'transparent';try{if(val&&val.length===7)g('fStrokeNat').value=val;}catch(e){}}
   render();updateCode();
 }
 
 function addField(){
   const type=g('addType').value;
   const isShape=SHAPES.includes(type);
+  const isIconOnly=type==='icon';
   const ic=ICONS_DEF[type]||'';
-  const base={id:nextId++,type,x:208,y:208,align:'center'};
+  const base={id:nextId++,type,x:208,y:208,align:'center',valign:'top'};
   if(isShape){
     fields.push({...base,w:60,h:type==='circle'?60:20,fillColor:'rgba(255,255,255,0.15)',strokeColor:'#FFFFFF',strokeWidth:1,opacity:80});
+  } else if(isIconOnly){
+    fields.push({...base,template:'',color:'#FFFFFF',iconColor:'#FFFFFF',iconLinked:false,font:'FONT_MEDIUM',icon:'♥',iconPos:'none',iconSize:28,customIcon:null,outlineColor:'',outlineWidth:1});
   } else {
-    fields.push({...base,template:type==='template'?'%w %e.%m':'',size:FONT_SIZES['FONT_MEDIUM'],color:DFLT_COL[type]||'#FFFFFF',iconColor:ic?'#FFFFFF':(DFLT_COL[type]||'#FFFFFF'),iconLinked:!ic,font:'FONT_MEDIUM',icon:ic,iconPos:ic?'left':'none',iconSize:22,customIcon:null,outlineColor:'',outlineWidth:1});
+    fields.push({...base,template:type==='template'?'%w %e.%m':'',color:DFLT_COL[type]||'#FFFFFF',iconColor:ic?DFLT_COL[type]:'#FFFFFF',iconLinked:!!ic,font:'FONT_MEDIUM',icon:'',iconPos:'none',iconSize:22,customIcon:null,outlineColor:'',outlineWidth:1});
   }
   render();updateCode();
 }
@@ -837,18 +940,32 @@ function centerF(axis){
   render();updateCode();
 }
 
-// ── DRAG ─────────────────────────────────────────────────────────
+// ── DRAG (Mouse + Touch) ─────────────────────────────────────────
 function startDrag(e,fId){
   e.preventDefault();
   const f=fields.find(x=>x.id===fId);
   const ox=f.x,oy=f.y,sx=e.clientX,sy=e.clientY;
   function mv(me){
-    f.x=Math.round(Math.max(0,Math.min(416,ox+(me.clientX-sx))));
-    f.y=Math.round(Math.max(0,Math.min(416,oy+(me.clientY-sy))));
+    f.x=Math.round(Math.max(0,Math.min(SCREEN,ox+(me.clientX-sx))));
+    f.y=Math.round(Math.max(0,Math.min(SCREEN,oy+(me.clientY-sy))));
     g('fX').value=f.x;g('fY').value=f.y;render();
   }
   function up(){document.removeEventListener('mousemove',mv);document.removeEventListener('mouseup',up);updateCode();}
   document.addEventListener('mousemove',mv);document.addEventListener('mouseup',up);
+}
+
+function startDragTouch(e,fId){
+  const f=fields.find(x=>x.id===fId);
+  const t=e.touches[0];
+  const ox=f.x,oy=f.y,sx=t.clientX,sy=t.clientY;
+  function mv(te){
+    const t2=te.touches[0];
+    f.x=Math.round(Math.max(0,Math.min(SCREEN,ox+(t2.clientX-sx))));
+    f.y=Math.round(Math.max(0,Math.min(SCREEN,oy+(t2.clientY-sy))));
+    g('fX').value=f.x;g('fY').value=f.y;render();
+  }
+  function up(){document.removeEventListener('touchmove',mv);document.removeEventListener('touchend',up);updateCode();}
+  document.addEventListener('touchmove',mv,{passive:false});document.addEventListener('touchend',up);
 }
 
 function startResizeShape(e,fId){
@@ -856,23 +973,24 @@ function startResizeShape(e,fId){
   const f=fields.find(x=>x.id===fId);
   const ow=f.w||40,oh=f.h||40,sx=e.clientX,sy=e.clientY;
   function mv(me){
-    f.w=Math.max(4,Math.min(416,ow+(me.clientX-sx)));
-    f.h=Math.max(4,Math.min(416,oh+(me.clientY-sy)));
-    g('fW').value=f.w;g('fH').value=f.h;render();
+    f.w=Math.max(4,Math.min(SCREEN,ow+(me.clientX-sx)));
+    f.h=Math.max(4,Math.min(SCREEN,oh+(me.clientY-sy)));
+    g('fW').value=Math.round(f.w);g('fH').value=Math.round(f.h);render();
   }
   function up(){document.removeEventListener('mousemove',mv);document.removeEventListener('mouseup',up);updateCode();}
   document.addEventListener('mousemove',mv);document.addEventListener('mouseup',up);
 }
 
 g('wscreen').addEventListener('click',e=>{
-  if(e.target.closest('.wf')||e.target.closest('.wshape'))return;
+  if(e.target.closest('.wf')||e.target.closest('.wshape')||e.target.closest('.wico'))return;
   selId=null;render();g('nosel').style.display='';g('fEd').style.display='none';
 });
 
 // ── TEMPLATE ─────────────────────────────────────────────────────
 function renderTpl(tpl){
-  if(!tpl)return '';
-  return tpl.replace(/%([HhMSpdembBYywWrastkck%])/g,(m,k)=>{if(k==='%')return '%';return SAMPLE_NOW[k]||m;});
+  if(!tpl)return'';
+  // fixed regex — removed duplicate c and k
+  return tpl.replace(/%([HhMSpdembBYywWrastck%])/g,(m,k)=>{if(k==='%')return'%';return SAMPLE_NOW[k]||m;});
 }
 
 function updTplPreview(){
@@ -895,21 +1013,43 @@ function buildTplBtns(){
 }
 
 // ── BG ───────────────────────────────────────────────────────────
-function applyBgCol(hex){if(!bgUrl)g('wbg').style.background=hex;g('bgSw').style.background=hex;try{g('bgNat').value=hex;}catch(e){}updateCode();}
+function applyBgCol(hex){
+  if(!bgUrl){g('wbg').style.background=hex;g('wbg').style.backgroundImage='';}
+  g('bgSw').style.background=hex;
+  try{g('bgNat').value=hex;}catch(e){}
+  updateCode();
+}
+
 function applyDim(v){g('dimV').textContent=v+'%';g('wdim').style.background=`rgba(0,0,0,${v/100})`;}
 
 async function uploadBg(inp){
-  const file=inp.files[0];if(!file||!CU)return;inp.value='';
-  const path=`${CU.id}/bg/${Date.now()}_${file.name}`;
+  const file=inp.files[0];if(!file||!CU)return;
+  // Store blob locally for ZIP export (so we don't need to re-fetch from Supabase)
+  bgBlob=file;
+  inp.value='';
+  const path=`${CU.id}/bg/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g,'_')}`;
   g('bgFn').innerHTML='<span class="sp"></span>Hochladen...';
   const{error}=await sb.storage.from('watchface-assets').upload(path,file,{contentType:file.type,upsert:true});
-  if(error){toast('Upload-Fehler: '+error.message,true);g('bgFn').textContent='Fehler';return;}
+  if(error){toast('Upload-Fehler: '+error.message,true);g('bgFn').textContent='Fehler';bgBlob=null;return;}
   const{data:{publicUrl}}=sb.storage.from('watchface-assets').getPublicUrl(path);
-  bgUrl=publicUrl;g('wbg').style.backgroundImage=`url(${bgUrl})`;g('wbg').style.backgroundSize='cover';g('bgFn').textContent=file.name+' ✓';
+  bgUrl=publicUrl;
+  // Preview
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    g('wbg').style.cssText=`background-image:url(${ev.target.result});background-size:cover;background-position:center`;
+  };
+  reader.readAsDataURL(file);
+  g('bgFn').textContent=file.name+' ✓';
   toast('Hintergrundbild hochgeladen ✓');updateCode();
 }
 
-function clearBg(){bgUrl=null;g('wbg').style.backgroundImage='';g('wbg').style.background=g('bgHex').value;g('bgFn').textContent='Cloud-Speicherung';}
+function clearBg(){
+  bgUrl=null;bgBlob=null;
+  g('wbg').style.backgroundImage='none';
+  g('wbg').style.background=g('bgHex').value;
+  g('bgFn').textContent='Cloud-Speicherung';
+  updateCode();
+}
 
 // ── TABS ─────────────────────────────────────────────────────────
 function switchTab(name,idx){
@@ -926,10 +1066,13 @@ function toHex(hex){
   return'0x'+hex.toUpperCase();
 }
 
-function garminAlign(align){
-  if(align==='left')return'Graphics.TEXT_JUSTIFY_LEFT';
-  if(align==='right')return'Graphics.TEXT_JUSTIFY_RIGHT';
-  return'Graphics.TEXT_JUSTIFY_CENTER';
+function garminAlign(align,valign){
+  let h='';
+  if(align==='left')h='Graphics.TEXT_JUSTIFY_LEFT';
+  else if(align==='right')h='Graphics.TEXT_JUSTIFY_RIGHT';
+  else h='Graphics.TEXT_JUSTIFY_CENTER';
+  if(valign==='vcenter')return h+'|Graphics.TEXT_JUSTIFY_VCENTER';
+  return h;
 }
 
 function tplToMC(tpl){
@@ -949,8 +1092,8 @@ function updateCode(){
   const co=g('codeOut');if(!co)return;
   const proj=(g('projName').value.trim()||'MWF1');
   const className=proj+'View';
-  const dev=g('devSel').value;
-  const textFields=fields.filter(f=>!SHAPES.includes(f.type));
+  const textFields=fields.filter(f=>!SHAPES.includes(f.type)&&f.type!=='icon');
+  const iconOnlyFields=fields.filter(f=>f.type==='icon');
   const shapeFields=fields.filter(f=>SHAPES.includes(f.type));
   const tplStr=textFields.filter(f=>f.type==='template').map(f=>f.template).join('');
   const needsCal=textFields.some(f=>['date','weekday','month','year'].includes(f.type))||/%[dembBYywW]/.test(tplStr);
@@ -960,11 +1103,13 @@ function updateCode(){
   const needsDOWL=/%W/.test(tplStr);
   const needsMONS=textFields.some(f=>f.type==='month')||/%b/.test(tplStr);
   const needsMONL=/%B/.test(tplStr);
-  const iconFields=textFields.filter(f=>f.icon&&f.icon!==''&&f.iconPos!=='none');
+  // Icon fields for code: text fields with inline icon + standalone icon elements
+  const inlineIconFields=textFields.filter(f=>f.icon&&f.icon!==''&&f.iconPos!=='none');
+  const allIconFields=[...inlineIconFields,...iconOnlyFields];
 
   let L=[];
   L.push(`// ================================================================`);
-  L.push(`// Garmin Watch Face — ${proj} | ${dev}`);
+  L.push(`// Garmin Watch Face — ${proj} | Forerunner 265 (416×416)`);
   L.push(`// ================================================================`);L.push('');
   L.push(`using Toybox.WatchUi as Ui;`);
   L.push(`using Toybox.Graphics as Graphics;`);
@@ -978,21 +1123,23 @@ function updateCode(){
     const id='F'+f.id;
     L.push(`    var ${id}_COLOR = ${toHex(f.color)};`);
     if(f.outlineColor&&f.outlineColor.length===7)L.push(`    var ${id}_OUTLINE = ${toHex(f.outlineColor)};`);
-
+  });
+  iconOnlyFields.forEach(f=>{
+    L.push(`    var F${f.id}_ICON_COLOR = ${toHex(f.iconColor||'#FFFFFF')};`);
   });
   L.push('');
   L.push(`    // ── POSITIONEN & SCHRIFTEN ─────────────────────`);
   textFields.forEach(f=>{const id='F'+f.id;L.push(`    var ${id}_X=${f.x}; var ${id}_Y=${f.y}; var ${id}_FONT=Graphics.${f.font};`);});
+  iconOnlyFields.forEach(f=>{L.push(`    var F${f.id}_X=${f.x}; var F${f.id}_Y=${f.y}; var F${f.id}_SIZE=${f.iconSize||22};`);});
   shapeFields.forEach(f=>{const id='F'+f.id;L.push(`    var ${id}_X=${f.x}; var ${id}_Y=${f.y}; var ${id}_W=${f.w||40}; var ${id}_H=${f.h||40};`);});
   L.push('');
-  // Resources as class vars
   if(bgUrl)L.push(`    var mBg;`);
-  iconFields.forEach(f=>L.push(`    var mIcon_F${f.id};`));
+  allIconFields.forEach(f=>L.push(`    var mIcon_F${f.id};`));
   L.push('');
   L.push(`    function initialize() {`);
   L.push(`        WatchFace.initialize();`);
   if(bgUrl)L.push(`        mBg = Ui.loadResource(Rez.Drawables.background);`);
-  iconFields.forEach(f=>L.push(`        mIcon_F${f.id} = Ui.loadResource(Rez.Drawables.icon_F${f.id});`));
+  allIconFields.forEach(f=>L.push(`        mIcon_F${f.id} = Ui.loadResource(Rez.Drawables.icon_F${f.id});`));
   L.push(`    }`);
   L.push(`    function onLayout(dc) {}`);L.push('');
   L.push(`    function onUpdate(dc) {`);
@@ -1005,10 +1152,11 @@ function updateCode(){
   if(needsMONS)L.push(`        var MONS = ["Jan","Feb","Mrz","Apr","Mai","Jun","Jul","Aug","Sep","Okt","Nov","Dez"];`);
   if(needsMONL)L.push(`        var MONL = ["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];`);
   L.push('');
+  // Background
   if(bgUrl){L.push(`        dc.drawBitmap(0, 0, mBg);`);}
   else{L.push(`        dc.setColor(${toHex(g('bgHex').value)}, Graphics.COLOR_BLACK);`);L.push(`        dc.clear();`);}
   L.push('');
-  // shapes first
+  // Shapes
   shapeFields.forEach(f=>{
     const id='F'+f.id;
     L.push(`        // ── ${LABELS[f.type]} ──`);
@@ -1022,10 +1170,16 @@ function updateCode(){
     }
     L.push('');
   });
-  // text fields
+  // Standalone icon elements
+  iconOnlyFields.forEach(f=>{
+    L.push(`        // ── Icon F${f.id} ──`);
+    L.push(`        dc.drawBitmap(F${f.id}_X - F${f.id}_SIZE/2, F${f.id}_Y - F${f.id}_SIZE/2, mIcon_F${f.id});`);
+    L.push('');
+  });
+  // Text fields
   textFields.forEach(f=>{
     const id='F'+f.id;
-    const align=garminAlign(f.align||'center');
+    const align=garminAlign(f.align||'center',f.valign||'top');
     let valExpr='';
     if(f.type==='template'){valExpr=tplToMC(f.template);}
     else{switch(f.type){
@@ -1046,22 +1200,21 @@ function updateCode(){
       default:valExpr='"--"';
     }}
     L.push(`        // ── ${LABELS[f.type]||f.type} ──`);
-    // outline
+    // Outline
     if(f.outlineColor&&f.outlineColor.length===7){
       const ow=f.outlineWidth||1;
       L.push(`        dc.setColor(${id}_OUTLINE, Graphics.COLOR_TRANSPARENT);`);
       for(let dx=-ow;dx<=ow;dx++){for(let dy=-ow;dy<=ow;dy++){if(dx===0&&dy===0)continue;L.push(`        dc.drawText(${id}_X+${dx}, ${id}_Y+${dy}, ${id}_FONT, ${valExpr}, ${align});`);}}
     }
-    // icon - always drawBitmap (PNG exported in assets ZIP)
+    // Inline icon (text fields only — standalone icons handled above)
     if(f.icon&&f.icon!==''&&f.iconPos!=='none'){
       const sz=f.iconSize||22;
       const fontHalf=Math.round((FONT_SIZES[f.font]||36)/2);
-      const offX=f.iconPos==='left'
-        ? `${id}_X - ${fontHalf} - ${sz} - 2`
-        : `${id}_X + ${fontHalf} + 2`;
-      L.push(`        dc.drawBitmap(${offX}, ${id}_Y, mIcon_F${f.id});`);
+      const offX=f.iconPos==='left'?`${id}_X - ${fontHalf} - ${sz} - 2`:`${id}_X + ${fontHalf} + 2`;
+      const offY=f.valign==='vcenter'?`${id}_Y - ${sz}/2`:`${id}_Y`;
+      L.push(`        dc.drawBitmap(${offX}, ${offY}, mIcon_F${f.id});`);
     }
-    // text
+    // Text
     L.push(`        dc.setColor(${id}_COLOR, Graphics.COLOR_TRANSPARENT);`);
     L.push(`        dc.drawText(${id}_X, ${id}_Y, ${id}_FONT, ${valExpr}, ${align});`);
     L.push('');
@@ -1083,19 +1236,32 @@ function dlCode(){
 }
 
 async function dlAssets(){
-  if(!window.JSZip){await new Promise((res,rej)=>{const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';s.onload=res;s.onerror=rej;document.head.appendChild(s);});}
+  // Load JSZip if needed
+  if(!window.JSZip){
+    await new Promise((res,rej)=>{
+      const s=document.createElement('script');
+      s.src='https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+      s.onload=res;s.onerror=rej;document.head.appendChild(s);
+    });
+  }
   const zip=new JSZip();
   const drawables=zip.folder('resources/drawables');
-  // ALL icon fields exported as PNG (emoji rendered on canvas, SVG/PNG as-is)
-  const iconFields=fields.filter(f=>!SHAPES.includes(f.type)&&f.icon&&f.icon!==''&&f.iconPos!=='none');
+
+  // ── Collect all icon fields (inline + standalone) ──
+  const textFields=fields.filter(f=>!SHAPES.includes(f.type)&&f.type!=='icon');
+  const inlineIconFields=textFields.filter(f=>f.icon&&f.icon!==''&&f.iconPos!=='none');
+  const iconOnlyFields=fields.filter(f=>f.type==='icon'&&f.icon&&f.icon!=='');
+  const allIconFields=[...inlineIconFields,...iconOnlyFields];
+
   const canvas=document.createElement('canvas');const ctx=canvas.getContext('2d');
-  const iconColor=f=>f.iconLinked?f.color:(f.iconColor||'#FFFFFF');
-  for(const f of iconFields){
+  const getIconColor=f=>f.iconLinked?f.color:(f.iconColor||'#FFFFFF');
+
+  for(const f of allIconFields){
     const sz=f.iconSize||22;
+    const col=getIconColor(f);
     canvas.width=sz*2;canvas.height=sz*2;ctx.clearRect(0,0,sz*2,sz*2);
-    const col=iconColor(f);
+
     if(f.customIcon&&f.customIcon.includes('image/svg')){
-      // SVG with color replacement
       try{
         const svgStr=atob(f.customIcon.split(',')[1]);
         const doc=new DOMParser().parseFromString(svgStr,'image/svg+xml');
@@ -1103,50 +1269,78 @@ async function dlAssets(){
         svg.querySelectorAll('[fill]').forEach(el=>{if(el.getAttribute('fill')!=='none')el.setAttribute('fill',col);});
         svg.querySelectorAll('[stroke]').forEach(el=>{if(el.getAttribute('stroke')!=='none')el.setAttribute('stroke',col);});
         svg.setAttribute('width',sz*2);svg.setAttribute('height',sz*2);
-        const blob=new Blob([svg.outerHTML],{type:'image/svg+xml'});
-        const url=URL.createObjectURL(blob);
-        await new Promise(res=>{const img=new Image();img.onload=()=>{ctx.drawImage(img,0,0,sz*2,sz*2);URL.revokeObjectURL(url);res();};img.onerror=res;img.src=url;});
+        const blobUrl=URL.createObjectURL(new Blob([svg.outerHTML],{type:'image/svg+xml'}));
+        await new Promise(res=>{const img=new Image();img.onload=()=>{ctx.drawImage(img,0,0,sz*2,sz*2);URL.revokeObjectURL(blobUrl);res();};img.onerror=res;img.src=blobUrl;});
       }catch(e){}
     } else if(f.customIcon){
-      // PNG custom icon
       await new Promise(res=>{const img=new Image();img.onload=()=>{ctx.drawImage(img,0,0,sz*2,sz*2);res();};img.onerror=res;img.src=f.customIcon;});
     } else {
-      // Emoji/text icon - render to canvas
       ctx.fillStyle=col;
       ctx.font=`${Math.round(sz*1.6)}px serif`;
-      ctx.textAlign='center';
-      ctx.textBaseline='middle';
-      ctx.fillText(f.icon, sz, sz);
+      ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText(f.icon,sz,sz);
     }
-    // scale down to target size
+    // Scale to target size
     const c2=document.createElement('canvas');c2.width=sz;c2.height=sz;
     c2.getContext('2d').drawImage(canvas,0,0,sz*2,sz*2,0,0,sz,sz);
     drawables.file(`icon_F${f.id}.png`,c2.toDataURL('image/png').split(',')[1],{base64:true});
   }
-  // launcher icon 60x60 black
+
+  // ── Background image — fetch and embed in ZIP ──
+  if(bgUrl){
+    let bgData=null;
+    // Try local blob first (just uploaded this session)
+    if(bgBlob){
+      bgData=await new Promise(res=>{const r=new FileReader();r.onload=e=>res(e.target.result.split(',')[1]);r.readAsDataURL(bgBlob);});
+    } else {
+      // Fetch from Supabase public URL
+      try{
+        const resp=await fetch(bgUrl);
+        if(resp.ok){
+          const ab=await resp.arrayBuffer();
+          const bytes=new Uint8Array(ab);
+          let bin='';bytes.forEach(b=>bin+=String.fromCharCode(b));
+          bgData=btoa(bin);
+        }
+      }catch(e){console.warn('BG fetch failed:',e);}
+    }
+    if(bgData){
+      drawables.file('background.png',bgData,{base64:true});
+    } else {
+      toast('⚠ Hintergrundbild konnte nicht eingepackt werden — manuell als background.png einfügen.',true);
+    }
+  }
+
+  // Launcher icon
   canvas.width=60;canvas.height=60;ctx.fillStyle='#000';ctx.fillRect(0,0,60,60);
   drawables.file('launcher_icon.png',canvas.toDataURL('image/png').split(',')[1],{base64:true});
+
   // drawables.xml
   let xml='<?xml version="1.0" encoding="UTF-8"?>\n<resources>\n';
   if(bgUrl)xml+='  <bitmap id="background" filename="background.png"/>\n';
   xml+='  <bitmap id="LauncherIcon" filename="launcher_icon.png"/>\n';
-  iconFields.forEach(f=>{xml+=`  <bitmap id="icon_F${f.id}" filename="icon_F${f.id}.png"/>\n`;});
+  allIconFields.forEach(f=>{xml+=`  <bitmap id="icon_F${f.id}" filename="icon_F${f.id}.png"/>\n`;});
   xml+='</resources>';
   drawables.file('drawables.xml',xml);
+
+  const projName=g('projName').value||'MWF1';
   zip.file('README.txt',
-  '=== Garmin Watch Face Assets ===\n\n'+
-  '1. Alle Dateien aus resources/drawables/ kopieren nach:\n'+
-  '   .../'+( g('projName').value||'MWF1')+'/resources/drawables/\n\n'+
-  '2. Hintergrundbild:\n'+
-  '   - Als background.png (8-Bit PNG, 416x416px fuer FR265) in drawables/ ablegen\n'+
-  '   - WICHTIG: Bild muss 8-Bit PNG sein (nicht 24-Bit)\n'+
-  '   - In Photoshop: Export > Als Web speichern > PNG-8\n\n'+
-  '3. drawables.xml ist fertig generiert und enthalten.\n\n'+
-  '4. Emoji-Symbole (Herz, Pfeil etc.) werden direkt als Text gezeichnet,\n'+
-  '   keine PNG-Dateien noetig.\n'
-);
+    '=== Garmin Watch Face Assets — '+projName+' ===\n\n'+
+    'Gerät: Forerunner 265 (416×416px)\n\n'+
+    '1. Alle Dateien aus resources/drawables/ kopieren nach:\n'+
+    '   .../'+projName+'/resources/drawables/\n\n'+
+    '2. Hintergrundbild:\n'+
+    '   - background.png ist im ZIP enthalten (falls hochgeladen)\n'+
+    '   - WICHTIG: Bild muss 8-Bit PNG sein (nicht 24-Bit)\n'+
+    '   - In Photoshop: Export > Als Web speichern > PNG-8\n'+
+    '   - Oder: pngquant background.png (Kommandozeile)\n\n'+
+    '3. drawables.xml ist fertig generiert.\n\n'+
+    '4. Icon-Elemente (separat positioniert) werden als drawBitmap gezeichnet.\n'+
+    '   X/Y im Code entspricht dem Mittelpunkt des Icons.\n'
+  );
+
   const blob=await zip.generateAsync({type:'blob'});
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(g('projName').value||'MWF1')+'_assets.zip';a.click();
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=projName+'_assets.zip';a.click();
   toast('Assets ZIP heruntergeladen ✓');
 }
 
