@@ -331,17 +331,29 @@ input[type=range]{flex:1;accent-color:#555;height:3px}
         <div id="fontSection">
           <div class="lbl">Schrift</div>
           <select id="fFont" onchange="updFont(this.value)" style="width:100%">
-            <optgroup label="Text">
-              <option value="FONT_TINY">Tiny (~16px)</option>
-              <option value="FONT_SMALL">Small (~22px)</option>
-              <option value="FONT_MEDIUM">Medium (~32px)</option>
-              <option value="FONT_LARGE">Large (~46px)</option>
+            <optgroup label="Text (normal)">
+              <option value="FONT_TINY">Tiny (~13px)</option>
+              <option value="FONT_SMALL">Small (~18px)</option>
+              <option value="FONT_MEDIUM">Medium (~22px)</option>
+              <option value="FONT_LARGE">Large (~32px)</option>
             </optgroup>
-            <optgroup label="Zahlen">
-              <option value="FONT_NUMBER_MILD">Number Mild (~50px)</option>
-              <option value="FONT_NUMBER_MEDIUM">Number Medium (~72px)</option>
-              <option value="FONT_NUMBER_HOT">Number Hot (~96px)</option>
-              <option value="FONT_NUMBER_THAI_HOT">Number Thai Hot (~120px)</option>
+            <optgroup label="Text (fett / System)">
+              <option value="FONT_SYSTEM_TINY">System Tiny (~13px bold)</option>
+              <option value="FONT_SYSTEM_SMALL">System Small (~18px bold)</option>
+              <option value="FONT_SYSTEM_MEDIUM">System Medium (~22px bold)</option>
+              <option value="FONT_SYSTEM_LARGE">System Large (~32px bold)</option>
+            </optgroup>
+            <optgroup label="Zahlen (normal)">
+              <option value="FONT_NUMBER_MILD">Number Mild (~38px)</option>
+              <option value="FONT_NUMBER_MEDIUM">Number Medium (~56px)</option>
+              <option value="FONT_NUMBER_HOT">Number Hot (~76px)</option>
+              <option value="FONT_NUMBER_THAI_HOT">Number Thai Hot (~98px)</option>
+            </optgroup>
+            <optgroup label="Zahlen (fett / System)">
+              <option value="FONT_SYSTEM_NUMBER_MILD">System Number Mild (~38px bold)</option>
+              <option value="FONT_SYSTEM_NUMBER_MEDIUM">System Number Medium (~56px bold)</option>
+              <option value="FONT_SYSTEM_NUMBER_HOT">System Number Hot (~76px bold)</option>
+              <option value="FONT_SYSTEM_NUMBER_THAI_HOT">System Number Thai Hot (~98px bold)</option>
             </optgroup>
           </select>
           <div style="font-size:9px;color:#2a2a2a;padding:2px 0">Grösse automatisch</div>
@@ -409,7 +421,13 @@ input[type=range]{flex:1;accent-color:#555;height:3px}
     <div style="font-size:9px;color:#222;margin-top:2px">Andere Modelle werden nicht unterstützt.</div>
     <div class="sec">Schriften</div>
     <div style="font-size:9px;color:#2a2a2a;line-height:1.6">Garmin System-Fonts werden verwendet — kein Upload nötig.</div>
-    <div style="font-size:9px;color:#222;line-height:1.8">Tiny · Small · Medium · Large<br>Number Mild · Medium · Hot · Thai Hot</div>
+    <div style="font-size:9px;color:#222;line-height:2">
+      Tiny · Small · Medium · Large<br>
+      Number Mild · Medium · Hot · Thai Hot<br>
+      <span style="color:#3a5a3a">System Tiny · Small · Medium · Large (fett)</span><br>
+      <span style="color:#3a5a3a">System Number Mild · Medium · Hot · Thai Hot (fett)</span>
+    </div>
+    <div style="font-size:9px;color:#2a2a2a;margin-top:4px;line-height:1.5">FONT_SYSTEM_* = gleiche Grösse wie FONT_*, aber <b>fett</b>. Garmin Stock-Faces (z.B. Digital) verwenden diese für Uhrzeit und Daten.</div>
   </div>
 
   <!-- BG -->
@@ -471,9 +489,50 @@ function initSupabase(){
 
 // ── CONSTANTS ────────────────────────────────────────────────────
 const SCREEN=416; // FR265 only
-// Heights approximate real Garmin FR265 getFontHeight() values
-const FONT_SIZES={FONT_TINY:14,FONT_SMALL:18,FONT_MEDIUM:24,FONT_LARGE:36,FONT_NUMBER_MILD:42,FONT_NUMBER_MEDIUM:60,FONT_NUMBER_HOT:80,FONT_NUMBER_THAI_HOT:100};
-const FONT_MIGRATE={INTER_THIN:'FONT_SMALL',INTER_REG:'FONT_MEDIUM',INTER_BOLD:'FONT_NUMBER_HOT'};
+
+// ── GARMIN FR265 FONT METRICS ────────────────────────────────────
+// getFontHeight() returns ascent+descent INCLUDING large internal margins.
+// VISIBLE height of rendered glyphs is approx 60-75% of getFontHeight().
+// Y coordinate in drawText() = top of getFontHeight() box (NOT top of visible glyph).
+// So visible text starts ~FONT_TOP_MARGIN pixels below the Y coordinate.
+//
+// CSS preview strategy:
+//   - fontSize = VISIBLE height (what you actually see rendered)
+//   - paddingTop = TOP_MARGIN (to push visible glyphs down, matching Garmin Y-anchor)
+//   - Total element height = getFontHeight() = visible + top_margin + bottom_margin
+//
+// Values measured/derived from FR265 simulator (SDK 9.x) community reports:
+//   getFontHeight  = full box height  (used for Y-layout math)
+//   visibleH       = actual glyph px  (used for CSS font-size)
+//   topMargin      = space above glyph inside the box
+
+const FONT_META = {
+// name                      getFontH  visH  topMargin  bold   cssFamily
+  FONT_TINY:               { fh:20,  vh:13, tm:4,  bold:false, fam:'sans-serif'   },
+  FONT_SMALL:              { fh:26,  vh:18, tm:4,  bold:false, fam:'sans-serif'   },
+  FONT_MEDIUM:             { fh:32,  vh:22, tm:5,  bold:false, fam:'sans-serif'   },
+  FONT_LARGE:              { fh:44,  vh:32, tm:6,  bold:false, fam:'sans-serif'   },
+  FONT_NUMBER_MILD:        { fh:56,  vh:38, tm:9,  bold:false, fam:'monospace'    },
+  FONT_NUMBER_MEDIUM:      { fh:80,  vh:56, tm:12, bold:false, fam:'monospace'    },
+  FONT_NUMBER_HOT:         { fh:104, vh:76, tm:14, bold:false, fam:'monospace'    },
+  FONT_NUMBER_THAI_HOT:    { fh:132, vh:98, tm:17, bold:false, fam:'monospace'    },
+  // SYSTEM fonts = same metrics but BOLD weight (used in Garmin stock faces)
+  FONT_SYSTEM_TINY:        { fh:20,  vh:13, tm:4,  bold:true,  fam:'sans-serif'   },
+  FONT_SYSTEM_SMALL:       { fh:26,  vh:18, tm:4,  bold:true,  fam:'sans-serif'   },
+  FONT_SYSTEM_MEDIUM:      { fh:32,  vh:22, tm:5,  bold:true,  fam:'sans-serif'   },
+  FONT_SYSTEM_LARGE:       { fh:44,  vh:32, tm:6,  bold:true,  fam:'sans-serif'   },
+  FONT_SYSTEM_NUMBER_MILD: { fh:56,  vh:38, tm:9,  bold:true,  fam:'monospace'    },
+  FONT_SYSTEM_NUMBER_MEDIUM:{ fh:80, vh:56, tm:12, bold:true,  fam:'monospace'    },
+  FONT_SYSTEM_NUMBER_HOT:  { fh:104, vh:76, tm:14, bold:true,  fam:'monospace'    },
+  FONT_SYSTEM_NUMBER_THAI_HOT:{fh:132,vh:98,tm:17, bold:true,  fam:'monospace'    },
+};
+// Backwards compat helpers
+function getFontPx(font){ return (FONT_META[font]||FONT_META.FONT_MEDIUM).vh; }
+function getFontHeight(font){ return (FONT_META[font]||FONT_META.FONT_MEDIUM).fh; }
+function getFontTopMargin(font){ return (FONT_META[font]||FONT_META.FONT_MEDIUM).tm; }
+const FONT_MIGRATE={INTER_THIN:'FONT_SMALL',INTER_REG:'FONT_MEDIUM',INTER_BOLD:'FONT_NUMBER_HOT',
+  // ensure any saved FONT_ without SYSTEM_ maps to itself (no-op), just validate
+};
 const SHAPES=['rect','circle'];
 const LABELS={template:'Freier Text',time:'Uhrzeit',seconds:'Sekunden',weekday:'Wochentag',date:'Datum',month:'Monat',year:'Jahr',hr:'Herzfrequenz',altitude:'Höhenmeter',steps:'Schritte',battery:'Batterie',calories:'Kalorien',distance:'Distanz',floors:'Stockwerke',stress:'Stress',icon:'Icon',rect:'Rechteck',circle:'Kreis'};
 const DFLT_COL={template:'#FFFFFF',time:'#FFFFFF',seconds:'#888888',weekday:'#BBBBBB',date:'#FFFFFF',month:'#999999',year:'#666666',hr:'#FF4444',altitude:'#44AAFF',steps:'#88EE88',battery:'#FFDD44',calories:'#FF8844',distance:'#44DDAA',floors:'#AA88FF',stress:'#FF6688',icon:'#FFFFFF',rect:'#FFFFFF',circle:'#FFFFFF'};
@@ -634,8 +693,6 @@ function getSample(f){
   return SAMPLE_VALS[f.type]||'--';
 }
 
-function getFontPx(font){return FONT_SIZES[font]||32;}
-
 function render(){
   const c=g('wfl');c.innerHTML='';
   fields.forEach(f=>{
@@ -650,18 +707,26 @@ function renderTextField(c,f){
   const el=document.createElement('div');
   el.className='wf'+(f.id===selId?' sel':'');
   el.dataset.id=f.id;
-  const px=getFontPx(f.font);
-  // X = center of element, Y = top edge (matches Garmin drawText with Y_TOP)
+  const meta=FONT_META[f.font]||FONT_META.FONT_MEDIUM;
+
+  // Garmin Y = top of getFontHeight() box. Visible glyphs start meta.tm px below.
+  // We simulate this with paddingTop so the preview matches the real watch layout.
   el.style.left=f.x+'px';
   el.style.top=f.y+'px';
-  el.style.fontSize=px+'px';
-  el.style.fontWeight=f.font.includes('HOT')||f.font==='FONT_LARGE'?'700':f.font==='FONT_TINY'?'300':'400';
-  el.style.fontFamily=f.font.includes('NUMBER')?"'Courier New',monospace":"'Arial',sans-serif";
+  el.style.fontSize=meta.vh+'px';
+  el.style.fontWeight=meta.bold?'700':'400';
+  el.style.fontFamily=meta.fam==='monospace'?"'Courier New',monospace":"'Arial',sans-serif";
   el.style.color=f.color;
   el.style.lineHeight='1';
-  // vertical centering offset for valign='vcenter' — shift up by half font height
+  el.style.paddingTop=meta.tm+'px';      // simulate Garmin's internal top margin
+  el.style.height=meta.fh+'px';          // total box height matches getFontHeight()
+  el.style.overflow='visible';
+
   if(f.valign==='vcenter'){
+    // vcenter: Garmin shifts Y by -getFontHeight()/2, so visible center aligns with Y
     el.style.transform=`translateX(-50%) translateY(-50%)`;
+    el.style.paddingTop='0';
+    el.style.height='auto';
   }
   if(f.outlineColor&&f.outlineColor.length===7){
     const ow=f.outlineWidth||1;
@@ -756,7 +821,7 @@ function renderList(){
               LABELS[f.type]||f.type;
     const info=SHAPES.includes(f.type)?`${f.w||40}×${f.h||40}`:
                f.type==='icon'?`${f.iconSize||22}px`:
-               f.font.replace('FONT_','').replace('NUMBER_','N.');
+               f.font.replace('FONT_SYSTEM_','S.').replace('FONT_NUMBER_','N.').replace('FONT_','').replace('NUMBER_','N.')+(FONT_META[f.font]?.bold?'●':'');
     const dotColor=SHAPES.includes(f.type)?(f.fillColor||'#555'):(f.type==='icon'?(f.iconColor||'#888'):f.color);
     el.innerHTML=`<div class="dot" style="background:${dotColor}"></div><span class="fn">${lbl}</span><span class="fi2">${info}</span>`;
     el.onclick=()=>selectField(f.id);l.appendChild(el);
